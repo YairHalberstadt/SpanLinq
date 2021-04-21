@@ -11,7 +11,8 @@ using static SpanLinq.Method;
 #nullable enable
 namespace SpanLinq
 {
-    public class SourceGenerator : ISourceGenerator
+    [Generator]
+    public sealed class SourceGenerator : ISourceGenerator
     {
         readonly Dictionary<string, Method> methods = (Enum.GetValues(typeof(Method)) as Method[]).ToDictionary(x => x.ToString());
 
