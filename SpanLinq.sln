@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31213.239
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpanLinq", "Spanlinq\SpanLinq.csproj", "{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpanLinq.Tests.Unit", "SpanLinq.Tests.Unit\SpanLinq.Tests.Unit.csproj", "{8D983896-D280-44AA-ACFF-019FED3A8E28}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeneratorTestsUpdator", "Utilities\GeneratorTestsUpdator\GeneratorTestsUpdator.csproj", "{FBE851B0-0209-4728-9447-D0887B14A5AB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		All|Any CPU = All|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+		Wpf|Any CPU = Wpf|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.All|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.All|Any CPU.Build.0 = Debug|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.Wpf|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}.Wpf|Any CPU.Build.0 = Debug|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.All|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.All|Any CPU.Build.0 = Debug|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.Wpf|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D983896-D280-44AA-ACFF-019FED3A8E28}.Wpf|Any CPU.Build.0 = Debug|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.All|Any CPU.ActiveCfg = All|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.All|Any CPU.Build.0 = All|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.Wpf|Any CPU.ActiveCfg = Wpf|Any CPU
+		{FBE851B0-0209-4728-9447-D0887B14A5AB}.Wpf|Any CPU.Build.0 = Wpf|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4DD94216-C45C-429F-B2FF-2646D88A2FF6}
+	EndGlobalSection
+EndGlobal
