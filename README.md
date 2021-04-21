@@ -1,2 +1,2 @@
 # SpanLinq
-Linq provider for span&lt;T> using SourceGenerators
+Linq for Span<T> using SourceGenerators
