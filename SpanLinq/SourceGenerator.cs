@@ -23,40 +23,39 @@ namespace SpanLinq
             var syntaxReciever = (SyntaxReciever)context.SyntaxReceiver!;
             var toInvestigate = syntaxReciever.ToInvestigate;
             var compilation = context.Compilation;
-            if (compilation.GetTypeByMetadataName(typeof(Span<>).FullName) is not { } span)
+            var span = compilation.GetTypeByMetadataName(typeof(Span<>).FullName);
+            var readOnlySpan = compilation.GetTypeByMetadataName(typeof(ReadOnlySpan<>).FullName);
+            if (span is null || readOnlySpan is null)
                 return;
-            var generatedTypes = "";
+            var source = "";
 
-            toInvestigate = toInvestigate.Where(x => compilation.GetSemanticModel(x.syntax.SyntaxTree).GetSymbolInfo(x.syntax).Symbol is null).ToList();
+            var generated = new HashSet<(string sourceType, Method method)>();
 
             while (toInvestigate.Count > 0)
             {
-                var generated = new HashSet<(ITypeSymbol sourceType, Method method)>();
-
                 var addedClass = compilation.GetTypeByMetadataName("System.Linq.SpanLinq");
                 var ourTypes = addedClass?.GetTypeMembers() ?? ImmutableArray<INamedTypeSymbol>.Empty;
-                var toPotentiallyGenerateLinqFor = new HashSet<INamedTypeSymbol>(ourTypes, SymbolEqualityComparer.Default) { span };
+#pragma warning disable RS1024 // Compare symbols correctly
+                var toPotentiallyGenerateLinqFor = new HashSet<INamedTypeSymbol>(ourTypes, SymbolEqualityComparer.Default) { span, readOnlySpan };
+#pragma warning restore RS1024 // Compare symbols correctly
 
                 var updatedToInvestigate = toInvestigate.Where(x =>
                 {
-                    if (compilation.GetSemanticModel(x.syntax.SyntaxTree).GetTypeInfo(x.syntax.Expression).Type is INamedTypeSymbol { OriginalDefinition: var type }
-                        && toPotentiallyGenerateLinqFor.Contains(type))
+                    var semanticModel = compilation.GetSemanticModel(x.syntax.SyntaxTree);
+                    if (semanticModel.GetSymbolInfo(x.syntax).Symbol is not null)
                     {
-                        if (generated.Add((type, x.method)))
-                        {
-                            if (generatedTypes != "")
-                            {
-                                generatedTypes += @"
-";
-                            }
-                            Generate(ref generatedTypes, type, x.method);
-                        }
-                        return false;
-                    }
-                    else
-                    {
+                        //Currently binds, so don't generate method for. Return true as fixing a call earlier in the chain can stop this binding.
                         return true;
                     }
+
+                    if (semanticModel.GetTypeInfo(x.syntax.Expression).Type is INamedTypeSymbol { OriginalDefinition: var type }
+                        && toPotentiallyGenerateLinqFor.Contains(type))
+                    {
+                        Generate(ref source, type, x.method, span, readOnlySpan, generated);
+                        return false;
+                    }
+
+                    return true;
                 }).ToList();
 
                 if (updatedToInvestigate.Count == toInvestigate.Count || updatedToInvestigate.Count == 0)
@@ -66,28 +65,39 @@ namespace SpanLinq
 
                 toInvestigate = updatedToInvestigate;
 
-                compilation = context.Compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(CreateFullSourceText(generatedTypes), syntaxReciever.ParseOptions, path: addedTreePath));
+                compilation = context.Compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(CreateFullSourceText(source), syntaxReciever.ParseOptions, path: addedTreePath));
             }
 
-            if (generatedTypes != "")
+            if (source != "")
             {
-                context.AddSource("SpanLinq.cs", SourceText.From(CreateFullSourceText(generatedTypes), Encoding.UTF8));
+                context.AddSource("SpanLinq.cs", SourceText.From(CreateFullSourceText(source), Encoding.UTF8));
             }
         }
 
         private static string CreateFullSourceText(string generatedTypes)
         {
             return 
-$@"namespace System.Linq
+$@"#pragma warning disable CS8019
+
+using System.ComponentModel;
+using System.Collections.Generic;
+
+namespace System.Linq
 {{
     internal static class SpanLinq
-    {{{generatedTypes}
-    }}
+    {{{generatedTypes}    }}
 }}";
         }
 
-        private void Generate(ref string doc, INamedTypeSymbol type, Method method)
+        private void Generate(ref string doc, INamedTypeSymbol type, Method method, INamedTypeSymbol span, INamedTypeSymbol readOnlySpan, HashSet<(string sourceType, Method method)> generated)
         {
+            if (!generated.Add((type.Name, method)))
+            {
+                return;
+            }
+
+            var isSpan = type.Equals(span, SymbolEqualityComparer.Default);
+            var isReadOnlySpan = type.Equals(readOnlySpan, SymbolEqualityComparer.Default);
             var sourceName = type.Name;
             var hasLength = type.GetMembers().Any(x => x is IPropertySymbol { Name: "Length" });
             switch (method)
@@ -100,11 +110,23 @@ $@"namespace System.Linq
                         var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
                         var sourceResult = sourceTypeParameters.Last();
                         var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        var resultName = "Select" + sourceName;
+                        var resultName = "Select" + (isReadOnlySpan ? "Span" : sourceName);
                         var fullResultName = $"{resultName}<{sourceTypeParametersString}, TResult>";
                         var funcName = $"Func<{sourceResult}, TResult>";
 
-                        doc += $@"
+                        if (isSpan)
+                        {
+                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+
+                            doc += $@"
+        public static {fullResultName} Select<{sourceTypeParametersString}, TResult>(this {fullSourceName} source, {funcName} selector)
+        {{
+            return ((ReadOnlySpan<{sourceResult}>)source).Select(selector);
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
         public static {fullResultName} Select<{sourceTypeParametersString}, TResult>(this {fullSourceName} source, {funcName} selector)
         {{
             return new {fullResultName}(source, selector);
@@ -120,8 +142,14 @@ $@"namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }}
-            {(hasLength ? @"
+            {(hasLength ? $@"
             public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {{
+                {(isReadOnlySpan ? "source = " : "")}source.Slice(start, length);
+            }}
 " : "")}
             public Enumerator GetEnumerator()
             {{
@@ -153,6 +181,7 @@ $@"namespace System.Linq
                 }}
             }}
         }}";
+                        }
                     }
                     break;
 
@@ -162,10 +191,22 @@ $@"namespace System.Linq
                         var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
                         var sourceResult = sourceTypeParameters.Last();
                         var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        var resultName = "Where" + sourceName;
+                        var resultName = "Where" + (isReadOnlySpan ? "Span" : sourceName);
                         var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
                         var funcName = $"Func<{sourceResult}, bool>";
-                        doc += $@"
+                        if (isSpan)
+                        {
+                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+
+                            doc += $@"
+        public static {fullResultName} Where<{sourceTypeParametersString}>(this {fullSourceName} source, {funcName} predicate)
+        {{
+            return ((ReadOnlySpan<{sourceResult}>)source).Where(predicate);
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
         public static {fullResultName} Where<{sourceTypeParametersString}>(this {fullSourceName} source, {funcName} predicate)
         {{
             return new {fullResultName}(source, predicate);
@@ -213,6 +254,7 @@ $@"namespace System.Linq
                 }}
             }}
         }}";
+                        }
                     }
                     break;
 
@@ -222,7 +264,19 @@ $@"namespace System.Linq
                         var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
                         var sourceResult = sourceTypeParameters.Last();
                         var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        doc += $@"
+                        if (isSpan)
+                        {
+                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+
+                            doc += $@"
+        public static System.Collections.Generic.List<{sourceResult}> ToList<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            return ((ReadOnlySpan<{sourceResult}>)source).ToList();
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
         public static System.Collections.Generic.List<{sourceResult}> ToList<{sourceTypeParametersString}>(this {fullSourceName} source)
         {{
             var list = new System.Collections.Generic.List<{sourceResult}>({(hasLength ? "source.Length" : "")});
@@ -232,6 +286,7 @@ $@"namespace System.Linq
             }}
             return list;
         }}";
+                        }
                     }
                     break;
 
@@ -241,7 +296,17 @@ $@"namespace System.Linq
                         var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
                         var sourceResult = sourceTypeParameters.Last();
                         var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        if (hasLength)
+                        if (isSpan)
+                        {
+                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+
+                            doc += $@"
+        public static {sourceResult}[] ToArray<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            return ((ReadOnlySpan<{sourceResult}>)source).ToArray();
+        }}";
+                        }
+                        else if (hasLength)
                         {
                             doc += $@"
         public static {sourceResult}[] ToArray<{sourceTypeParametersString}>(this {fullSourceName} source)
@@ -271,7 +336,159 @@ $@"namespace System.Linq
                         }
                     }
                     break;
+
+                case Take:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static {fullSourceName} Take<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
+        {{
+            if (count < source.Length)
+            {{
+                {((isSpan || isReadOnlySpan) ? "source = " : "")}source.Slice(0, count);
+            }}
+            return source;
+        }}";
+                        }
+                        else
+                        {
+                            var resultName = "Take" + (isReadOnlySpan ? "Span" : sourceName);
+                            var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
+
+                            doc += $@"
+        public static {fullResultName} Take<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
+        {{
+            return new {fullResultName}(source, count);
+        }}
+
+        public ref struct {fullResultName}
+        {{
+            private {fullSourceName} source;
+            private int count;
+
+            public {resultName}({fullSourceName} source, int count)
+            {{
+                this.source = source;
+                this.count = count;
+            }}
+
+            public Enumerator GetEnumerator()
+            {{
+                return new Enumerator(this);
+            }}
+
+            public ref struct Enumerator
+            {{
+                private int remaining;
+                private {fullSourceName}.Enumerator enumerator;
+
+                public Enumerator({fullResultName} outer)
+                {{
+                    remaining = outer.count;
+                    enumerator = outer.source.GetEnumerator();
+                }}
+
+                public {sourceResult} Current => enumerator.Current;
+
+                public bool MoveNext()
+                {{
+                    remaining--;
+                    return remaining >= 0 && enumerator.MoveNext();
+                }}
+            }}
+        }}";
+                        }
+                    }
+                    break;
+
+                case Skip:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static {fullSourceName} Skip<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
+        {{
+            if (count < source.Length)
+            {{
+                {((isSpan || isReadOnlySpan) ? "source = " : "")}source.Slice(count, source.Length - count);
+            }}
+            else
+            {{
+                {((isSpan || isReadOnlySpan) ? "source = " : "")}source.Slice(0, 0);
+            }}
+            return source;
+        }}";
+                        }
+                        else
+                        {
+                            var resultName = "Skip" + (isReadOnlySpan ? "Span" : sourceName);
+                            var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
+
+                            doc += $@"
+        public static {fullResultName} Skip<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
+        {{
+            return new {fullResultName}(source, count);
+        }}
+
+        public ref struct {fullResultName}
+        {{
+            private {fullSourceName} source;
+            private int count;
+
+            public {resultName}({fullSourceName} source, int count)
+            {{
+                this.source = source;
+                this.count = count;
+            }}
+
+            public Enumerator GetEnumerator()
+            {{
+                return new Enumerator(this);
+            }}
+
+            public ref struct Enumerator
+            {{
+                private int remaining;
+                private {fullSourceName}.Enumerator enumerator;
+
+                public Enumerator({fullResultName} outer)
+                {{
+                    remaining = outer.count;
+                    enumerator = outer.source.GetEnumerator();
+                }}
+
+                public {sourceResult} Current => enumerator.Current;
+
+                public bool MoveNext()
+                {{
+                    while(remaining > 0)
+                    {{
+                        if (!enumerator.MoveNext())
+                            return false;
+                        remaining--;
+                    }}
+                    return enumerator.MoveNext();
+                }}
+            }}
+        }}";
+                        }
+                    }
+                    break;
             }
+
+            doc += @"
+";
         }
 
         public void Initialize(GeneratorInitializationContext context)

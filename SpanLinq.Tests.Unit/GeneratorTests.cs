@@ -1,6 +1,11 @@
 
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.Loader;
 using System.Text;
 using Xunit;
 using Xunit.Abstractions;
@@ -29,27 +34,38 @@ list.Select(x => x * x);
             generatorDiagnostics.Verify();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
-            file.Should().BeIgnoringLineEndings(@"namespace System.Linq
+            file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+
+using System.ComponentModel;
+using System.Collections.Generic;
+
+namespace System.Linq
 {
     internal static class SpanLinq
     {
-        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this Span<TSource> source, Func<TSource, TResult> selector)
+        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
         {
             return new SelectSpan<TSource, TResult>(source, selector);
         }
 
         public ref struct SelectSpan<TSource, TResult>
         {
-            private Span<TSource> source;
+            private ReadOnlySpan<TSource> source;
             private Func<TSource, TResult> selector;
 
-            public SelectSpan(Span<TSource> source, Func<TSource, TResult> selector)
+            public SelectSpan(ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
             {
                 this.source = source;
                 this.selector = selector;
             }
             
             public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {
+                source = source.Slice(start, length);
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -59,7 +75,7 @@ list.Select(x => x * x);
             public ref struct Enumerator
             {
                 private Func<TSource, TResult> selector;
-                private Span<TSource>.Enumerator enumerator;
+                private ReadOnlySpan<TSource>.Enumerator enumerator;
 
                 public Enumerator(SelectSpan<TSource, TResult> outer)
                 {
@@ -82,6 +98,11 @@ list.Select(x => x * x);
             }
         }
 
+        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this Span<TSource> source, Func<TSource, TResult> selector)
+        {
+            return ((ReadOnlySpan<TSource>)source).Select(selector);
+        }
+
         public static SelectSelectSpan<SelectSpanTSource, SelectSpanTResult, TResult> Select<SelectSpanTSource, SelectSpanTResult, TResult>(this SelectSpan<SelectSpanTSource, SelectSpanTResult> source, Func<SelectSpanTResult, TResult> selector)
         {
             return new SelectSelectSpan<SelectSpanTSource, SelectSpanTResult, TResult>(source, selector);
@@ -99,6 +120,12 @@ list.Select(x => x * x);
             }
             
             public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {
+                source.Slice(start, length);
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -159,27 +186,38 @@ span.Select(x => (long)x).Select(x => (short)x).ToList();
             generatorDiagnostics.Verify();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
-            file.Should().BeIgnoringLineEndings(@"namespace System.Linq
+            file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+
+using System.ComponentModel;
+using System.Collections.Generic;
+
+namespace System.Linq
 {
     internal static class SpanLinq
     {
-        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this Span<TSource> source, Func<TSource, TResult> selector)
+        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
         {
             return new SelectSpan<TSource, TResult>(source, selector);
         }
 
         public ref struct SelectSpan<TSource, TResult>
         {
-            private Span<TSource> source;
+            private ReadOnlySpan<TSource> source;
             private Func<TSource, TResult> selector;
 
-            public SelectSpan(Span<TSource> source, Func<TSource, TResult> selector)
+            public SelectSpan(ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
             {
                 this.source = source;
                 this.selector = selector;
             }
             
             public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {
+                source = source.Slice(start, length);
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -189,7 +227,7 @@ span.Select(x => (long)x).Select(x => (short)x).ToList();
             public ref struct Enumerator
             {
                 private Func<TSource, TResult> selector;
-                private Span<TSource>.Enumerator enumerator;
+                private ReadOnlySpan<TSource>.Enumerator enumerator;
 
                 public Enumerator(SelectSpan<TSource, TResult> outer)
                 {
@@ -212,6 +250,11 @@ span.Select(x => (long)x).Select(x => (short)x).ToList();
             }
         }
 
+        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this Span<TSource> source, Func<TSource, TResult> selector)
+        {
+            return ((ReadOnlySpan<TSource>)source).Select(selector);
+        }
+
         public static SelectSelectSpan<SelectSpanTSource, SelectSpanTResult, TResult> Select<SelectSpanTSource, SelectSpanTResult, TResult>(this SelectSpan<SelectSpanTSource, SelectSpanTResult> source, Func<SelectSpanTResult, TResult> selector)
         {
             return new SelectSelectSpan<SelectSpanTSource, SelectSpanTResult, TResult>(source, selector);
@@ -229,6 +272,12 @@ span.Select(x => (long)x).Select(x => (short)x).ToList();
             }
             
             public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {
+                source.Slice(start, length);
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -289,21 +338,26 @@ List<string> list = span.Where(x => true).Select(x => x.ToString()).Where(x => f
             generatorDiagnostics.Verify();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
-            file.Should().BeIgnoringLineEndings(@"namespace System.Linq
+            file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+
+using System.ComponentModel;
+using System.Collections.Generic;
+
+namespace System.Linq
 {
     internal static class SpanLinq
     {
-        public static WhereSpan<T> Where<T>(this Span<T> source, Func<T, bool> predicate)
+        public static WhereSpan<T> Where<T>(this ReadOnlySpan<T> source, Func<T, bool> predicate)
         {
             return new WhereSpan<T>(source, predicate);
         }
 
         public ref struct WhereSpan<T>
         {
-            private Span<T> source;
+            private ReadOnlySpan<T> source;
             private Func<T, bool> predicate;
 
-            public WhereSpan(Span<T> source, Func<T, bool> predicate)
+            public WhereSpan(ReadOnlySpan<T> source, Func<T, bool> predicate)
             {
                 this.source = source;
                 this.predicate = predicate;
@@ -317,7 +371,7 @@ List<string> list = span.Where(x => true).Select(x => x.ToString()).Where(x => f
             public ref struct Enumerator
             {
                 private Func<T, bool> predicate;
-                private Span<T>.Enumerator enumerator;
+                private ReadOnlySpan<T>.Enumerator enumerator;
 
                 public Enumerator(WhereSpan<T> outer)
                 {
@@ -339,6 +393,11 @@ List<string> list = span.Where(x => true).Select(x => x.ToString()).Where(x => f
                     return false;
                 }
             }
+        }
+
+        public static WhereSpan<T> Where<T>(this Span<T> source, Func<T, bool> predicate)
+        {
+            return ((ReadOnlySpan<T>)source).Where(predicate);
         }
 
         public static SelectWhereSpan<TSource, TResult> Select<TSource, TResult>(this WhereSpan<TSource> source, Func<TSource, TResult> selector)
@@ -464,27 +523,38 @@ span.Where(x => x > 0).ToArray();
             generatorDiagnostics.Verify();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
-            file.Should().BeIgnoringLineEndings(@"namespace System.Linq
+            file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+
+using System.ComponentModel;
+using System.Collections.Generic;
+
+namespace System.Linq
 {
     internal static class SpanLinq
     {
-        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this Span<TSource> source, Func<TSource, TResult> selector)
+        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
         {
             return new SelectSpan<TSource, TResult>(source, selector);
         }
 
         public ref struct SelectSpan<TSource, TResult>
         {
-            private Span<TSource> source;
+            private ReadOnlySpan<TSource> source;
             private Func<TSource, TResult> selector;
 
-            public SelectSpan(Span<TSource> source, Func<TSource, TResult> selector)
+            public SelectSpan(ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
             {
                 this.source = source;
                 this.selector = selector;
             }
             
             public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {
+                source = source.Slice(start, length);
+            }
 
             public Enumerator GetEnumerator()
             {
@@ -494,7 +564,7 @@ span.Where(x => x > 0).ToArray();
             public ref struct Enumerator
             {
                 private Func<TSource, TResult> selector;
-                private Span<TSource>.Enumerator enumerator;
+                private ReadOnlySpan<TSource>.Enumerator enumerator;
 
                 public Enumerator(SelectSpan<TSource, TResult> outer)
                 {
@@ -517,17 +587,22 @@ span.Where(x => x > 0).ToArray();
             }
         }
 
-        public static WhereSpan<T> Where<T>(this Span<T> source, Func<T, bool> predicate)
+        public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this Span<TSource> source, Func<TSource, TResult> selector)
+        {
+            return ((ReadOnlySpan<TSource>)source).Select(selector);
+        }
+
+        public static WhereSpan<T> Where<T>(this ReadOnlySpan<T> source, Func<T, bool> predicate)
         {
             return new WhereSpan<T>(source, predicate);
         }
 
         public ref struct WhereSpan<T>
         {
-            private Span<T> source;
+            private ReadOnlySpan<T> source;
             private Func<T, bool> predicate;
 
-            public WhereSpan(Span<T> source, Func<T, bool> predicate)
+            public WhereSpan(ReadOnlySpan<T> source, Func<T, bool> predicate)
             {
                 this.source = source;
                 this.predicate = predicate;
@@ -541,7 +616,7 @@ span.Where(x => x > 0).ToArray();
             public ref struct Enumerator
             {
                 private Func<T, bool> predicate;
-                private Span<T>.Enumerator enumerator;
+                private ReadOnlySpan<T>.Enumerator enumerator;
 
                 public Enumerator(WhereSpan<T> outer)
                 {
@@ -563,6 +638,11 @@ span.Where(x => x > 0).ToArray();
                     return false;
                 }
             }
+        }
+
+        public static WhereSpan<T> Where<T>(this Span<T> source, Func<T, bool> predicate)
+        {
+            return ((ReadOnlySpan<T>)source).Where(predicate);
         }
 
         public static TResult[] ToArray<TSource, TResult>(this SelectSpan<TSource, TResult> source)
@@ -588,6 +668,202 @@ span.Where(x => x > 0).ToArray();
         }
     }
 }");
+        }
+
+        [Fact]
+        public void TakeFollowedByToArray()
+        {
+            string userSource = @"
+using System;
+using System.Linq;
+
+Span<int> span = default;
+span.Take(5).ToArray();
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out var generated);
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            var file = Assert.Single(generated);
+            file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+
+using System.ComponentModel;
+using System.Collections.Generic;
+
+namespace System.Linq
+{
+    internal static class SpanLinq
+    {
+        public static Span<T> Take<T>(this Span<T> source, int count)
+        {
+            if (count < source.Length)
+            {
+                source = source.Slice(0, count);
+            }
+            return source;
+        }
+    }
+}");
+        }
+
+        private static Method[] AllMethods { get; } = (Method[])Enum.GetValues(typeof(Method));
+        private static Method[] ChaniningMethods { get; } = AllMethods.Except(new[] { Method.ToList, Method.ToArray }).ToArray();
+        public static IEnumerable<object[]> TestCartesianProduct1Data() => from first in AllMethods
+                                                                           select new object[] { first };
+        public static IEnumerable<object[]> TestCartesianProduct2Data() => from first in ChaniningMethods
+                                                                           from second in AllMethods
+                                                                           select new object[] { first, second };
+        public static IEnumerable<object[]> TestCartesianProduct3Data() => from first in ChaniningMethods
+                                                                           from second in ChaniningMethods
+                                                                           from third in AllMethods
+                                                                           select new object[] { first, second, third };
+
+        [Theory]
+        [MemberData(nameof(TestCartesianProduct1Data))]
+        public void TestCartesianProductOnSpan1(Method first)
+        {
+            string userSource = $@"#pragma warning disable CS8019
+
+using System;
+using System.Linq;
+using Xunit;
+
+Span<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(span{GetStringForMethod(first)}.ToArray(), span.ToArray(){GetStringForMethod(first)});
+return 0;
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            TestRun(comp);
+        }
+
+        [Theory]
+        [MemberData(nameof(TestCartesianProduct2Data))]
+        public void TestCartesianProductOnSpan2(Method first, Method second)
+        {
+            string userSource = $@"#pragma warning disable CS8019
+
+using System;
+using System.Linq;
+using Xunit;
+
+Span<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(span{GetStringForMethod(first)}{GetStringForMethod(second)}.ToArray(), span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)});
+return 0;
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            TestRun(comp);
+        }
+
+        [Theory]
+        [MemberData(nameof(TestCartesianProduct3Data))]
+        public void TestCartesianProductOnSpan3(Method first, Method second, Method third)
+        {
+            string userSource = $@"#pragma warning disable CS8019
+
+using System;
+using System.Linq;
+using Xunit;
+
+Span<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(
+    span{GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)}.ToArray(),
+    span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)});
+return 0;
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            TestRun(comp);
+        }
+
+        [Theory]
+        [MemberData(nameof(TestCartesianProduct1Data))]
+        public void TestCartesianProductOnROSpan1(Method first)
+        {
+            string userSource = $@"#pragma warning disable CS8019
+
+using System;
+using System.Linq;
+using Xunit;
+
+ReadOnlySpan<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(span{GetStringForMethod(first)}.ToArray(), span.ToArray(){GetStringForMethod(first)});
+return 0;
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            TestRun(comp);
+        }
+
+        [Theory]
+        [MemberData(nameof(TestCartesianProduct2Data))]
+        public void TestCartesianProductOnROSpan2(Method first, Method second)
+        {
+            string userSource = $@"#pragma warning disable CS8019
+
+using System;
+using System.Linq;
+using Xunit;
+
+ReadOnlySpan<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(span{GetStringForMethod(first)}{GetStringForMethod(second)}.ToArray(), span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)});
+return 0;
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            TestRun(comp);
+        }
+
+        [Theory]
+        [MemberData(nameof(TestCartesianProduct3Data))]
+        public void TestCartesianProductOnROSpan3(Method first, Method second, Method third)
+        {
+            string userSource = $@"#pragma warning disable CS8019
+
+using System;
+using System.Linq;
+using Xunit;
+
+ReadOnlySpan<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(
+    span{GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)}.ToArray(),
+    span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)});
+return 0;
+";
+            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
+            generatorDiagnostics.Verify();
+            comp.GetDiagnostics().Verify();
+            TestRun(comp);
+        }
+
+        private string GetStringForMethod(Method method)
+        {
+            return method switch
+            {
+                Method.Select => ".Select(x => x * x)",
+                Method.Where => ".Where(x => x % 3 != 1 )",
+                Method.Skip => ".Skip(4)",
+                Method.Take => ".Take(4)",
+                Method.ToArray => ".ToArray()",
+                Method.ToList => ".ToList()",
+                _ => throw new NotImplementedException(method.ToString())
+            };
+        }
+
+        private static void TestRun(Compilation comp)
+        {
+            using var stream = new MemoryStream();
+            comp.Emit(stream);
+            stream.Seek(0, SeekOrigin.Begin);
+            var assemblyLoadContext = new AssemblyLoadContext(null, true);
+            var assembly = assemblyLoadContext.LoadFromStream(stream);
+            Assert.Equal(0, assembly.EntryPoint.Invoke(null, new object[] { null }));
+            assemblyLoadContext.Unload();
         }
     }
 }

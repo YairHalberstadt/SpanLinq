@@ -46,7 +46,7 @@ namespace GeneratorTestsUpdator
             public override bool OnMessageWithTypes(IMessageSinkMessage message, HashSet<string> messageTypes)
             {
                 var correctCodeRegex = new Regex(@", but\s*("".*"")\s* ((has a length of \d*)|(differs near ""))", RegexOptions.Singleline);
-                var originalCodeRegex = new Regex(@"""namespace.*?(?<!"")""(?!"")", RegexOptions.Singleline);
+                var originalCodeRegex = new Regex(@"""#pragma.*?(?<!"")""(?!"")", RegexOptions.Singleline);
                 var stackTraceRegex = new Regex(@"SpanLinq.Tests.Unit.GeneratorTests.* (\d+)", RegexOptions.Singleline);
                 if (message is ITestFailed { StackTraces: var stackTraces } testFailed)
                 {
@@ -67,7 +67,7 @@ namespace GeneratorTestsUpdator
                         var originalCodeMatches = originalCodeRegex.Matches(sourceFromMethod);
                         if (originalCodeMatches.Count == 0)
                         {
-                            Console.WriteLine($"Cannot fix test {testFailed.TestMethod.Method.Name} as can't find string beginning 'namespace'");
+                            Console.WriteLine($"Cannot fix test {testFailed.TestMethod.Method.Name} as can't find string beginning '#pragma'");
                         }
                         else
                         {

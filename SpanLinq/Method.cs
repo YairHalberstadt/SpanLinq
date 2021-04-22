@@ -1,11 +1,13 @@
 ﻿#nullable enable
 namespace SpanLinq
 {
-    enum Method
+    public enum Method
     {
         Select,
         Where,
         ToList,
         ToArray,
+        Skip,
+        Take,
     }
 }
