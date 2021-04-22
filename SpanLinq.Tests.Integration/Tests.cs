@@ -145,5 +145,89 @@ namespace SpanLinq.Tests.Integration
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.Equal(3, span.Where(x => x % 2 == 1).Count());
         }
+
+        [Fact]
+        public void TestAnyFalse()
+        {
+            Span<int> span = stackalloc int[] {  };
+            Assert.False(span.Any());
+        }
+
+        [Fact]
+        public void TestAnyTrue()
+        {
+            Span<int> span = stackalloc int[] { 1 };
+            Assert.True(span.Any());
+        }
+
+        [Fact]
+        public void TestSelectAnyFalse()
+        {
+            Span<int> span = stackalloc int[] { };
+            Assert.False(span.Select(x => x * x).Any());
+        }
+
+        [Fact]
+        public void TestSelectAnyTrue()
+        {
+            Span<int> span = stackalloc int[] { 1 };
+            Assert.True(span.Select(x => x * x).Any());
+        }
+
+        [Fact]
+        public void TestWhereAnyFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.Where(x => x > 10).Any());
+        }
+
+        [Fact]
+        public void TestWhereAnyTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Where(x => x > 4).Any());
+        }
+
+        [Fact]
+        public void TestAnyPredicateFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5};
+            Assert.False(span.Any(x => x > 10));
+        }
+
+        [Fact]
+        public void TestAnyPredicateTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Any(x => x > 4));
+        }
+
+        [Fact]
+        public void TestSelectAnyPredicateFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.Select(x => x + 10).Any(x => x < 10));
+        }
+
+        [Fact]
+        public void TestSelectAnyPredicateTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Select(x => x + 10).Any(x => x > 10));
+        }
+
+        [Fact]
+        public void TestWhereAnyPredicateFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.Where(x => x > 3).Any(x => x <= 3));
+        }
+
+        [Fact]
+        public void TestWhereAnyPredicateTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Where(x => x > 3).Any(x => x > 4));
+        }
     }
 }

@@ -515,6 +515,47 @@ namespace System.Linq
                         }
                     }
                     break;
+
+                case Any:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static bool Any<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            return source.Length != 0;
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static bool Any<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            foreach (var item in source)
+            {{
+                return true;
+            }}
+            return false;
+        }}";
+                        }
+
+                        doc += $@"
+
+        public static bool Any<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            foreach (var item in source)
+            {{
+                if (predicate(item))
+                    return true;
+            }}
+            return false;
+        }}";
+                    }
+                    break;
             }
 
             doc += @"

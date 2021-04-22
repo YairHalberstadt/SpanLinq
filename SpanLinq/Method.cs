@@ -10,5 +10,6 @@ namespace SpanLinq
         Skip,
         Take,
         Count,
+        Any,
     }
 }

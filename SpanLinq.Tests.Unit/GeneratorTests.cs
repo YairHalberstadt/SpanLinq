@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Loader;
-using System.Text;
 using Xunit;
 using Xunit.Abstractions;
+using static SpanLinq.Method;
 
 namespace SpanLinq.Tests.Unit
 {
@@ -707,8 +707,8 @@ namespace System.Linq
 
         private static bool[] Bools { get; } = new[] { true, false };
         private static Method[] AllMethods { get; } = (Method[])Enum.GetValues(typeof(Method));
-        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Method.Count }).ToArray();
-        private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { Method.ToList, Method.ToArray }).ToArray();
+        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any }).ToArray();
+        private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray }).ToArray();
         public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools
                                                                            from first in AllMethods
                                                                            select new object[] { b, first };
@@ -748,7 +748,7 @@ return 0;
         [MemberData(nameof(TestCartesianProduct2Data))]
         public void TestCartesianProduct2(bool readOnlySpan, Method first, Method second)
         {
-            var isRefStructReturning = RefStructReturningMethods.Contains(first);
+            var isRefStructReturning = RefStructReturningMethods.Contains(second);
 
             string userSource = $@"#pragma warning disable CS8019
 
@@ -772,7 +772,7 @@ return 0;
         [MemberData(nameof(TestCartesianProduct3Data))]
         public void TestCartesianProduct3(bool readOnlySpan, Method first, Method second, Method third)
         {
-            var isRefStructReturning = RefStructReturningMethods.Contains(first);
+            var isRefStructReturning = RefStructReturningMethods.Contains(third);
 
             string userSource = $@"#pragma warning disable CS8019
 
@@ -796,14 +796,15 @@ return 0;
         {
             return method switch
             {
-                Method.Select => ".Select(x => x * x)",
-                Method.Where => ".Where(x => x % 3 != 1 )",
-                Method.Skip => ".Skip(4)",
-                Method.Take => ".Take(4)",
-                Method.ToArray => ".ToArray()",
-                Method.ToList => ".ToList()",
-                Method.Count => ".Count()",
-                _ => throw new NotImplementedException(method.ToString())
+                Select => ".Select(x => x * x)",
+                Where => ".Where(x => x % 3 != 1 )",
+                Skip => ".Skip(4)",
+                Take => ".Take(4)",
+                ToArray => ".ToArray()",
+                ToList => ".ToList()",
+                Count => ".Count()",
+                Any => ".Any()",
+                _ => throw new NotImplementedException(ToString())
             };
         }
 
