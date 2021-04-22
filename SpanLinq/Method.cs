@@ -9,5 +9,6 @@ namespace SpanLinq
         ToArray,
         Skip,
         Take,
+        Count,
     }
 }

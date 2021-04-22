@@ -485,6 +485,36 @@ namespace System.Linq
                         }
                     }
                     break;
+
+                case Count:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static int Count<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            return source.Length;
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static int Count<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            int count = 0;
+            foreach (var item in source)
+            {{
+                count++;
+            }}
+            return count;
+        }}";
+                        }
+                    }
+                    break;
             }
 
             doc += @"

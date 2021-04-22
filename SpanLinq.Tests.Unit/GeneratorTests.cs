@@ -705,30 +705,37 @@ namespace System.Linq
 }");
         }
 
+        private static bool[] Bools { get; } = new[] { true, false };
         private static Method[] AllMethods { get; } = (Method[])Enum.GetValues(typeof(Method));
-        private static Method[] ChaniningMethods { get; } = AllMethods.Except(new[] { Method.ToList, Method.ToArray }).ToArray();
-        public static IEnumerable<object[]> TestCartesianProduct1Data() => from first in AllMethods
-                                                                           select new object[] { first };
-        public static IEnumerable<object[]> TestCartesianProduct2Data() => from first in ChaniningMethods
+        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Method.Count }).ToArray();
+        private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { Method.ToList, Method.ToArray }).ToArray();
+        public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools
+                                                                           from first in AllMethods
+                                                                           select new object[] { b, first };
+        public static IEnumerable<object[]> TestCartesianProduct2Data() => from b in Bools
+                                                                           from first in RefStructReturningMethods
                                                                            from second in AllMethods
-                                                                           select new object[] { first, second };
-        public static IEnumerable<object[]> TestCartesianProduct3Data() => from first in ChaniningMethods
-                                                                           from second in ChaniningMethods
+                                                                           select new object[] { b, first, second };
+        public static IEnumerable<object[]> TestCartesianProduct3Data() => from b in Bools
+                                                                           from first in RefStructReturningMethods
+                                                                           from second in RefStructReturningMethods
                                                                            from third in AllMethods
-                                                                           select new object[] { first, second, third };
+                                                                           select new object[] { b, first, second, third };
 
         [Theory]
         [MemberData(nameof(TestCartesianProduct1Data))]
-        public void TestCartesianProductOnSpan1(Method first)
+        public void TestCartesianProduct1(bool readOnlySpan, Method first)
         {
+            var isRefStructReturning = RefStructReturningMethods.Contains(first);
+
             string userSource = $@"#pragma warning disable CS8019
 
 using System;
 using System.Linq;
 using Xunit;
 
-Span<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
-Assert.Equal(span{GetStringForMethod(first)}.ToArray(), span.ToArray(){GetStringForMethod(first)});
+{(readOnlySpan ? "ReadOnlySpan<int>" : "Span<int>")} span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(span{GetStringForMethod(first)}{(isRefStructReturning ? ".ToArray()" : "")}, span.ToArray(){GetStringForMethod(first)});
 return 0;
 ";
             var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
@@ -739,16 +746,20 @@ return 0;
 
         [Theory]
         [MemberData(nameof(TestCartesianProduct2Data))]
-        public void TestCartesianProductOnSpan2(Method first, Method second)
+        public void TestCartesianProduct2(bool readOnlySpan, Method first, Method second)
         {
+            var isRefStructReturning = RefStructReturningMethods.Contains(first);
+
             string userSource = $@"#pragma warning disable CS8019
 
 using System;
 using System.Linq;
 using Xunit;
 
-Span<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
-Assert.Equal(span{GetStringForMethod(first)}{GetStringForMethod(second)}.ToArray(), span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)});
+{(readOnlySpan ? "ReadOnlySpan<int>" : "Span<int>")} span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+Assert.Equal(
+    span{GetStringForMethod(first)}{GetStringForMethod(second)}{(isRefStructReturning ? ".ToArray()" : "")},
+    span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)});
 return 0;
 ";
             var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
@@ -759,79 +770,19 @@ return 0;
 
         [Theory]
         [MemberData(nameof(TestCartesianProduct3Data))]
-        public void TestCartesianProductOnSpan3(Method first, Method second, Method third)
+        public void TestCartesianProduct3(bool readOnlySpan, Method first, Method second, Method third)
         {
+            var isRefStructReturning = RefStructReturningMethods.Contains(first);
+
             string userSource = $@"#pragma warning disable CS8019
 
 using System;
 using System.Linq;
 using Xunit;
 
-Span<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
+{(readOnlySpan ? "ReadOnlySpan<int>" : "Span<int>")} span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
 Assert.Equal(
-    span{GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)}.ToArray(),
-    span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)});
-return 0;
-";
-            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
-            generatorDiagnostics.Verify();
-            comp.GetDiagnostics().Verify();
-            TestRun(comp);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestCartesianProduct1Data))]
-        public void TestCartesianProductOnROSpan1(Method first)
-        {
-            string userSource = $@"#pragma warning disable CS8019
-
-using System;
-using System.Linq;
-using Xunit;
-
-ReadOnlySpan<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
-Assert.Equal(span{GetStringForMethod(first)}.ToArray(), span.ToArray(){GetStringForMethod(first)});
-return 0;
-";
-            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
-            generatorDiagnostics.Verify();
-            comp.GetDiagnostics().Verify();
-            TestRun(comp);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestCartesianProduct2Data))]
-        public void TestCartesianProductOnROSpan2(Method first, Method second)
-        {
-            string userSource = $@"#pragma warning disable CS8019
-
-using System;
-using System.Linq;
-using Xunit;
-
-ReadOnlySpan<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
-Assert.Equal(span{GetStringForMethod(first)}{GetStringForMethod(second)}.ToArray(), span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)});
-return 0;
-";
-            var comp = RunGenerator(userSource, out var generatorDiagnostics, out _, MetadataReference.CreateFromFile(typeof(Assert).Assembly.Location));
-            generatorDiagnostics.Verify();
-            comp.GetDiagnostics().Verify();
-            TestRun(comp);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestCartesianProduct3Data))]
-        public void TestCartesianProductOnROSpan3(Method first, Method second, Method third)
-        {
-            string userSource = $@"#pragma warning disable CS8019
-
-using System;
-using System.Linq;
-using Xunit;
-
-ReadOnlySpan<int> span = stackalloc int[]{{0,1,2,3,4,5,6,7,8,9}};
-Assert.Equal(
-    span{GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)}.ToArray(),
+    span{GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)}{(isRefStructReturning ? ".ToArray()" : "")},
     span.ToArray(){GetStringForMethod(first)}{GetStringForMethod(second)}{GetStringForMethod(third)});
 return 0;
 ";
@@ -851,6 +802,7 @@ return 0;
                 Method.Take => ".Take(4)",
                 Method.ToArray => ".ToArray()",
                 Method.ToList => ".ToList()",
+                Method.Count => ".Count()",
                 _ => throw new NotImplementedException(method.ToString())
             };
         }

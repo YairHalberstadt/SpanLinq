@@ -124,5 +124,26 @@ namespace SpanLinq.Tests.Integration
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.Equal(new int[] { }, span.Where(x => x % 2 == 1).Skip(4).ToList());
         }
+
+        [Fact]
+        public void TestCount()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.Count());
+        }
+
+        [Fact]
+        public void TestSelectCount()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.Select(x => x * x).Count());
+        }
+
+        [Fact]
+        public void TestWhereCount()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(3, span.Where(x => x % 2 == 1).Count());
+        }
     }
 }
