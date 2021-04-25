@@ -91,6 +91,20 @@ namespace SpanLinq.Tests.Integration
         }
 
         [Fact]
+        public void TestTakeLessThan0()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new int[] {  }, span.Take(-1).ToList());
+        }
+
+        [Fact]
+        public void TestWhereTakeLessThan0()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new int[] {  }, span.Where(x => x % 2 == 1).Take(-1).ToList());
+        }
+
+        [Fact]
         public void TestSkip()
         {
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
@@ -123,6 +137,20 @@ namespace SpanLinq.Tests.Integration
         {
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.Equal(new int[] { }, span.Where(x => x % 2 == 1).Skip(4).ToList());
+        }
+
+        [Fact]
+        public void TestSkipLessThan0()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new int[] { 1, 2, 3, 4, 5 }, span.Skip(-1).ToList());
+        }
+
+        [Fact]
+        public void TestWhereSkipLessThan0()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new int[] { 1, 3, 5 }, span.Where(x => x % 2 == 1).Skip(-1).ToList());
         }
 
         [Fact]
@@ -228,6 +256,192 @@ namespace SpanLinq.Tests.Integration
         {
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.True(span.Where(x => x > 3).Any(x => x > 4));
+        }
+
+        [Fact]
+        public void TestFirstOrDefaultEmpty()
+        {
+            Span<int> span = stackalloc int[] { };
+            Assert.Equal(default, span.FirstOrDefault());
+        }
+
+        [Fact]
+        public void TestFirstOrDefaultHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1 , 2 };
+            Assert.Equal(1, span.FirstOrDefault());
+        }
+
+        [Fact]
+        public void TestSelectFirstOrDefaultEmpty()
+        {
+            Span<int> span = stackalloc int[] { };
+            Assert.Equal(default, span.Select(x => x * x).FirstOrDefault());
+        }
+
+        [Fact]
+        public void TestSelectFirstOrDefaultHasValues()
+        {
+            Span<int> span = stackalloc int[] { 2 };
+            Assert.Equal(4, span.Select(x => x * x).FirstOrDefault());
+        }
+
+        [Fact]
+        public void TestWhereFirstOrDefaultEmpty()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5, 6 };
+            Assert.Equal(default, span.Where(x => x > 10).FirstOrDefault());
+        }
+
+        [Fact]
+        public void TestWhereFirstOrDefaultHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5, 6 };
+            Assert.Equal(5, span.Where(x => x > 4).FirstOrDefault());
+        }
+
+        [Fact]
+        public void TestFirstOrDefaultPredicateEmpty()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(default, span.FirstOrDefault(x => x > 10));
+        }
+
+        [Fact]
+        public void TestFirstOrDefaultPredicateHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.FirstOrDefault(x => x > 4));
+        }
+
+        [Fact]
+        public void TestSelectFirstOrDefaultPredicateEmpty()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(default, span.Select(x => x + 10).FirstOrDefault(x => x < 10));
+        }
+
+        [Fact]
+        public void TestSelectFirstOrDefaultPredicateHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(11, span.Select(x => x + 10).FirstOrDefault(x => x > 10));
+        }
+
+        [Fact]
+        public void TestWhereFirstOrDefaultPredicateEmpty()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(default, span.Where(x => x > 3).FirstOrDefault(x => x <= 3));
+        }
+
+        [Fact]
+        public void TestWhereFirstOrDefaultPredicateHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.Where(x => x > 3).FirstOrDefault(x => x > 4));
+        }
+
+        [Fact]
+        public void TestFirstEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { };
+                return span.First();
+            });
+        }
+
+        [Fact]
+        public void TestFirstHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2 };
+            Assert.Equal(1, span.First());
+        }
+
+        [Fact]
+        public void TestSelectFirstEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { };
+                return span.Select(x => x * x).First();
+            });
+        }
+
+        [Fact]
+        public void TestSelectFirstHasValues()
+        {
+            Span<int> span = stackalloc int[] { 2 };
+            Assert.Equal(4, span.Select(x => x * x).First());
+        }
+
+        [Fact]
+        public void TestWhereFirstEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5, 6 };
+                return span.Where(x => x > 10).First();
+            });
+        }
+
+        [Fact]
+        public void TestWhereFirstHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5, 6 };
+            Assert.Equal(5, span.Where(x => x > 4).First());
+        }
+
+        [Fact]
+        public void TestFirstPredicateEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+                return span.First(x => x > 10);
+            });
+        }
+
+        [Fact]
+        public void TestFirstPredicateHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.First(x => x > 4));
+        }
+
+        [Fact]
+        public void TestSelectFirstPredicateEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+                return span.Select(x => x + 10).First(x => x < 10);
+            });
+        }
+
+        [Fact]
+        public void TestSelectFirstPredicateHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(11, span.Select(x => x + 10).First(x => x > 10));
+        }
+
+        [Fact]
+        public void TestWhereFirstPredicateEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+                return span.Where(x => x > 3).First(x => x <= 3);
+            });
+        }
+
+        [Fact]
+        public void TestWhereFirstPredicateHasValues()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.Where(x => x > 3).First(x => x > 4));
         }
     }
 }

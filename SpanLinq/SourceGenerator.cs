@@ -78,6 +78,7 @@ namespace SpanLinq
         {
             return 
 $@"#pragma warning disable CS8019
+#nullable enable
 
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -85,7 +86,12 @@ using System.Collections.Generic;
 namespace System.Linq
 {{
     internal static class SpanLinq
-    {{{generatedTypes}    }}
+    {{
+        private static class ThrowHelpers
+        {{
+            internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+        }}
+{generatedTypes}    }}
 }}";
         }
 
@@ -165,7 +171,7 @@ namespace System.Linq
                 {{
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }}
 
                 public TResult Current {{ get; private set; }}
@@ -351,7 +357,7 @@ namespace System.Linq
         {{
             if (count < source.Length)
             {{
-                {((isSpan || isReadOnlySpan) ? "source = " : "")}source.Slice(0, count);
+                {((isSpan || isReadOnlySpan) ? "source = " : "")}source.Slice(0, Math.Max(0, count));
             }}
             return source;
         }}";
@@ -419,7 +425,11 @@ namespace System.Linq
                             doc += $@"
         public static {fullSourceName} Skip<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
         {{
-            if (count < source.Length)
+            if (count <= 0)
+            {{
+                
+            }}
+            else if (count < source.Length)
             {{
                 {((isSpan || isReadOnlySpan) ? "source = " : "")}source.Slice(count, source.Length - count);
             }}
@@ -553,6 +563,66 @@ namespace System.Linq
                     return true;
             }}
             return false;
+        }}";
+                    }
+                    break;
+
+                case FirstOrDefault:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        doc += $@"
+        public static {sourceResult}? FirstOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            foreach (var item in source)
+            {{
+                return item;
+            }}
+            return default;
+        }}
+
+        public static {sourceResult}? FirstOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            foreach (var item in source)
+            {{
+                if (predicate(item))
+                    return item;
+            }}
+            return default;
+        }}";
+                    }
+                    break;
+
+                case First:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        doc += $@"
+        public static {sourceResult} First<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            foreach (var item in source)
+            {{
+                return item;
+            }}
+            ThrowHelpers.ThrowNoElementsException();
+            return default!;
+        }}
+
+        public static {sourceResult} First<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            foreach (var item in source)
+            {{
+                if (predicate(item))
+                    return item;
+            }}
+            ThrowHelpers.ThrowNoElementsException();
+            return default!;
         }}";
                     }
                     break;

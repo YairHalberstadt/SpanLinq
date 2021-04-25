@@ -11,5 +11,7 @@ namespace SpanLinq
         Take,
         Count,
         Any,
+        FirstOrDefault,
+        First,
     }
 }

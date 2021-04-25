@@ -35,6 +35,7 @@ list.Select(x => x * x);
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
             file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+#nullable enable
 
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -43,6 +44,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
+        private static class ThrowHelpers
+        {
+            internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+        }
+
         public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
         {
             return new SelectSpan<TSource, TResult>(source, selector);
@@ -81,7 +87,7 @@ namespace System.Linq
                 {
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }
 
                 public TResult Current { get; private set; }
@@ -141,7 +147,7 @@ namespace System.Linq
                 {
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }
 
                 public TResult Current { get; private set; }
@@ -187,6 +193,7 @@ span.Select(x => (long)x).Select(x => (short)x).ToList();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
             file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+#nullable enable
 
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -195,6 +202,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
+        private static class ThrowHelpers
+        {
+            internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+        }
+
         public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
         {
             return new SelectSpan<TSource, TResult>(source, selector);
@@ -233,7 +245,7 @@ namespace System.Linq
                 {
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }
 
                 public TResult Current { get; private set; }
@@ -293,7 +305,7 @@ namespace System.Linq
                 {
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }
 
                 public TResult Current { get; private set; }
@@ -339,6 +351,7 @@ List<string> list = span.Where(x => true).Select(x => x.ToString()).Where(x => f
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
             file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+#nullable enable
 
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -347,6 +360,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
+        private static class ThrowHelpers
+        {
+            internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+        }
+
         public static WhereSpan<T> Where<T>(this ReadOnlySpan<T> source, Func<T, bool> predicate)
         {
             return new WhereSpan<T>(source, predicate);
@@ -430,7 +448,7 @@ namespace System.Linq
                 {
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }
 
                 public TResult Current { get; private set; }
@@ -524,6 +542,7 @@ span.Where(x => x > 0).ToArray();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
             file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+#nullable enable
 
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -532,6 +551,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
+        private static class ThrowHelpers
+        {
+            internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+        }
+
         public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
         {
             return new SelectSpan<TSource, TResult>(source, selector);
@@ -570,7 +594,7 @@ namespace System.Linq
                 {
                     selector = outer.selector;
                     enumerator = outer.source.GetEnumerator();
-                    Current = default;
+                    Current = default!;
                 }
 
                 public TResult Current { get; private set; }
@@ -685,6 +709,7 @@ span.Take(5).ToArray();
             comp.GetDiagnostics().Verify();
             var file = Assert.Single(generated);
             file.Should().BeIgnoringLineEndings(@"#pragma warning disable CS8019
+#nullable enable
 
 using System.ComponentModel;
 using System.Collections.Generic;
@@ -693,11 +718,16 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
+        private static class ThrowHelpers
+        {
+            internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+        }
+
         public static Span<T> Take<T>(this Span<T> source, int count)
         {
             if (count < source.Length)
             {
-                source = source.Slice(0, count);
+                source = source.Slice(0, Math.Max(0, count));
             }
             return source;
         }
@@ -707,7 +737,7 @@ namespace System.Linq
 
         private static bool[] Bools { get; } = new[] { true, false };
         private static Method[] AllMethods { get; } = (Method[])Enum.GetValues(typeof(Method));
-        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any }).ToArray();
+        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any, First, FirstOrDefault }).ToArray();
         private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray }).ToArray();
         public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools
                                                                            from first in AllMethods
@@ -798,12 +828,14 @@ return 0;
             {
                 Select => ".Select(x => x * x)",
                 Where => ".Where(x => x % 3 != 1 )",
-                Skip => ".Skip(4)",
+                Skip => ".Skip(3)",
                 Take => ".Take(4)",
                 ToArray => ".ToArray()",
                 ToList => ".ToList()",
                 Count => ".Count()",
                 Any => ".Any()",
+                FirstOrDefault => ".FirstOrDefault()",
+                First => ".First()",
                 _ => throw new NotImplementedException(ToString())
             };
         }
