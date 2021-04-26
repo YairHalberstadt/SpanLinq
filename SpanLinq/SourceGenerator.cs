@@ -726,6 +726,27 @@ namespace System.Linq
                         }
                     }
                     break;
+
+                case All:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        doc += $@"
+
+        public static bool All<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            foreach (var item in source)
+            {{
+                if (!predicate(item))
+                    return false;
+            }}
+            return true;
+        }}";
+                    }
+                    break;
             }
 
             doc += @"

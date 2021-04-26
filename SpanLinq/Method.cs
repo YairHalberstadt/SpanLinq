@@ -14,6 +14,7 @@ namespace SpanLinq
         FirstOrDefault,
         First,
         SingleOrDefault,
-        Single
+        Single,
+        All,
     }
 }

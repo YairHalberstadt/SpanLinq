@@ -596,5 +596,54 @@ namespace SpanLinq.Tests.Integration
                 return span.Where(x => x > 3).SingleOrDefault();
             });
         }
+
+        [Fact]
+        public void TestAllFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.All(x => x < 4));
+        }
+
+        [Fact]
+        public void TestAllTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.All(x => x < 6));
+        }
+
+        [Fact]
+        public void TestSelectAllFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.Select(x => x + 10).All(x => x < 14));
+        }
+
+        [Fact]
+        public void TestSelectAllTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Select(x => x + 10).All(x => x > 10));
+        }
+
+        [Fact]
+        public void TestWhereAllFalse()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.Where(x => x > 3).All(x => x > 4));
+        }
+
+        [Fact]
+        public void TestWhereAllTrue()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Where(x => x > 3).All(x => x > 3));
+        }
+
+        [Fact]
+        public void TestAllOnEmptySpanReturnsTrue()
+        {
+            Span<int> span = stackalloc int[] { };
+            Assert.True(span.All(x => x > 10));
+        }
     }
 }

@@ -44,9 +44,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
-        private static class ThrowHelpers
+        private static class ThrowHelper
         {
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+
+            internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
         }
 
         public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
@@ -72,6 +74,8 @@ namespace System.Linq
             {
                 source = source.Slice(start, length);
             }
+
+            public TResult this[int i] => selector(source[i]);
 
             public Enumerator GetEnumerator()
             {
@@ -132,6 +136,8 @@ namespace System.Linq
             {
                 source.Slice(start, length);
             }
+
+            public TResult this[int i] => selector(source[i]);
 
             public Enumerator GetEnumerator()
             {
@@ -202,9 +208,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
-        private static class ThrowHelpers
+        private static class ThrowHelper
         {
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+
+            internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
         }
 
         public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
@@ -230,6 +238,8 @@ namespace System.Linq
             {
                 source = source.Slice(start, length);
             }
+
+            public TResult this[int i] => selector(source[i]);
 
             public Enumerator GetEnumerator()
             {
@@ -290,6 +300,8 @@ namespace System.Linq
             {
                 source.Slice(start, length);
             }
+
+            public TResult this[int i] => selector(source[i]);
 
             public Enumerator GetEnumerator()
             {
@@ -360,9 +372,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
-        private static class ThrowHelpers
+        private static class ThrowHelper
         {
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+
+            internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
         }
 
         public static WhereSpan<T> Where<T>(this ReadOnlySpan<T> source, Func<T, bool> predicate)
@@ -551,9 +565,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
-        private static class ThrowHelpers
+        private static class ThrowHelper
         {
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+
+            internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
         }
 
         public static SelectSpan<TSource, TResult> Select<TSource, TResult>(this ReadOnlySpan<TSource> source, Func<TSource, TResult> selector)
@@ -579,6 +595,8 @@ namespace System.Linq
             {
                 source = source.Slice(start, length);
             }
+
+            public TResult this[int i] => selector(source[i]);
 
             public Enumerator GetEnumerator()
             {
@@ -718,9 +736,11 @@ namespace System.Linq
 {
     internal static class SpanLinq
     {
-        private static class ThrowHelpers
+        private static class ThrowHelper
         {
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+
+            internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
         }
 
         public static Span<T> Take<T>(this Span<T> source, int count)
@@ -737,7 +757,7 @@ namespace System.Linq
 
         private static bool[] Bools { get; } = new[] { true, false };
         private static Method[] AllMethods { get; } = ((Method[])Enum.GetValues(typeof(Method))).Except( new[] { Method.Single, SingleOrDefault } ).ToArray();
-        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any, First, FirstOrDefault }).ToArray();
+        private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any, First, FirstOrDefault, All }).ToArray();
         private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray }).ToArray();
         public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools
                                                                            from first in AllMethods
@@ -836,6 +856,7 @@ return 0;
                 Any => ".Any()",
                 FirstOrDefault => ".FirstOrDefault()",
                 First => ".First()",
+                All => ".All(x => x < 4)",
                 _ => throw new NotImplementedException(ToString())
             };
         }
