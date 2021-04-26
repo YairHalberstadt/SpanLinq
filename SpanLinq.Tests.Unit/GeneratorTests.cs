@@ -736,7 +736,7 @@ namespace System.Linq
         }
 
         private static bool[] Bools { get; } = new[] { true, false };
-        private static Method[] AllMethods { get; } = (Method[])Enum.GetValues(typeof(Method));
+        private static Method[] AllMethods { get; } = ((Method[])Enum.GetValues(typeof(Method))).Except( new[] { Method.Single, SingleOrDefault } ).ToArray();
         private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any, First, FirstOrDefault }).ToArray();
         private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray }).ToArray();
         public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools

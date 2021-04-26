@@ -13,5 +13,7 @@ namespace SpanLinq
         Any,
         FirstOrDefault,
         First,
+        SingleOrDefault,
+        Single
     }
 }

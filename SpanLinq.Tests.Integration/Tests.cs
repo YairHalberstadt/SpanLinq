@@ -443,5 +443,158 @@ namespace SpanLinq.Tests.Integration
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.Equal(5, span.Where(x => x > 3).First(x => x > 4));
         }
+
+        [Fact]
+        public void TestSingleEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { };
+                return span.Single();
+            });
+        }
+
+        [Fact]
+        public void TestSingleOneElement()
+        {
+            Span<int> span = stackalloc int[] { 1 };
+            Assert.Equal(1, span.Single());
+        }
+
+        [Fact]
+        public void TestSingleMultipleElements()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2 };
+                return span.Single();
+            });
+        }
+
+        [Fact]
+        public void TestSelectSingleEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { };
+                return span.Select(x => x.ToString()).Single();
+            });
+        }
+
+        [Fact]
+        public void TestSelectSingleOneElement()
+        {
+            Span<int> span = stackalloc int[] { 1 };
+            Assert.Equal("1", span.Select(x => x.ToString()).Single());
+        }
+
+        [Fact]
+        public void TestSelectSingleMultipleElements()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2 };
+                return span.Select(x => x.ToString()).Single();
+            });
+        }
+
+        [Fact]
+        public void TestWhereSingleEmpty()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+                return span.Where(x => x > 5).Single();
+            });
+        }
+
+        [Fact]
+        public void TestWhereSingleOneElement()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.Where(x => x > 4).Single());
+        }
+
+        [Fact]
+        public void TestWhereSingleMultipleElements()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+                return span.Where(x => x > 3).Single();
+            });
+        }
+
+        [Fact]
+        public void TestSingleOrDefaultEmpty()
+        {
+            Span<int> span = stackalloc int[] { };
+            Assert.Equal(default, span.SingleOrDefault());
+        }
+
+        [Fact]
+        public void TestSingleOrDefaultOneElement()
+        {
+            Span<int> span = stackalloc int[] { 1 };
+            Assert.Equal(1, span.SingleOrDefault());
+        }
+
+        [Fact]
+        public void TestSingleOrDefaultMultipleElements()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2 };
+                return span.SingleOrDefault();
+            });
+        }
+
+        [Fact]
+        public void TestSelectSingleOrDefaultEmpty()
+        {
+            Span<int> span = stackalloc int[] { };
+            Assert.Equal(default, span.Select(x => x.ToString()).SingleOrDefault());
+        }
+
+        [Fact]
+        public void TestSelectSingleOrDefaultOneElement()
+        {
+            Span<int> span = stackalloc int[] { 1 };
+            Assert.Equal("1", span.Select(x => x.ToString()).SingleOrDefault());
+        }
+
+        [Fact]
+        public void TestSelectSingleOrDefaultMultipleElements()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2 };
+                return span.Select(x => x.ToString()).SingleOrDefault();
+            });
+        }
+
+        [Fact]
+        public void TestWhereSingleOrDefaultEmpty()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(default, span.Where(x => x > 5).SingleOrDefault());
+        }
+
+        [Fact]
+        public void TestWhereSingleOrDefaultOneElement()
+        {
+            Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(5, span.Where(x => x > 4).SingleOrDefault());
+        }
+
+        [Fact]
+        public void TestWhereSingleOrDefaultMultipleElements()
+        {
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+                return span.Where(x => x > 3).SingleOrDefault();
+            });
+        }
     }
 }

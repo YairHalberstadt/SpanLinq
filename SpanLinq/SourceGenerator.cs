@@ -87,9 +87,11 @@ namespace System.Linq
 {{
     internal static class SpanLinq
     {{
-        private static class ThrowHelpers
+        private static class ThrowHelper
         {{
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
+
+            internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
         }}
 {generatedTypes}    }}
 }}";
@@ -156,6 +158,8 @@ namespace System.Linq
             {{
                 {(isReadOnlySpan ? "source = " : "")}source.Slice(start, length);
             }}
+
+            public TResult this[int i] => selector(source[i]);
 " : "")}
             public Enumerator GetEnumerator()
             {{
@@ -610,7 +614,7 @@ namespace System.Linq
             {{
                 return item;
             }}
-            ThrowHelpers.ThrowNoElementsException();
+            ThrowHelper.ThrowNoElementsException();
             return default!;
         }}
 
@@ -621,9 +625,105 @@ namespace System.Linq
                 if (predicate(item))
                     return item;
             }}
-            ThrowHelpers.ThrowNoElementsException();
+            ThrowHelper.ThrowNoElementsException();
             return default!;
         }}";
+                    }
+                    break;
+
+                case SingleOrDefault:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static {sourceResult}? SingleOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            switch (source.Length)
+            {{
+                case 0:
+                    return default;
+                case 1:
+                    return source[0];
+                default:
+                    ThrowHelper.ThrowMoreThanOneElementException();
+                    return default!;
+            }}
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static {sourceResult}? SingleOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            var enumerator = source.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {{
+                return default;
+            }}
+ 
+            var result = enumerator.Current;
+            if (!enumerator.MoveNext())
+            {{
+                return result;
+            }}
+            ThrowHelper.ThrowMoreThanOneElementException();
+            return default;
+        }}";
+                        }
+                    }
+                    break;
+
+                case Method.Single:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static {sourceResult}? Single<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            switch (source.Length)
+            {{
+                case 0:
+                    ThrowHelper.ThrowNoElementsException();
+                    return default!;
+                case 1:
+                    return source[0];
+                default:
+                    ThrowHelper.ThrowMoreThanOneElementException();
+                    return default!;
+            }}
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static {sourceResult}? Single<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            var enumerator = source.GetEnumerator();
+            if (!enumerator.MoveNext())
+            {{
+                ThrowHelper.ThrowNoElementsException();
+                return default!;
+            }}
+ 
+            var result = enumerator.Current;
+            if (!enumerator.MoveNext())
+            {{
+                return result;
+            }}
+            ThrowHelper.ThrowMoreThanOneElementException();
+            return default!;
+        }}";
+                        }
                     }
                     break;
             }
