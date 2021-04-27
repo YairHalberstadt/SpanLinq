@@ -92,6 +92,8 @@ namespace System.Linq
             internal static void ThrowNoElementsException() => throw new InvalidOperationException(""Sequence contains no elements"");
 
             internal static void ThrowMoreThanOneElementException() => throw new InvalidOperationException(""Sequence contains more than one element"");
+
+            internal static void ThrowNoMatchException() => throw new InvalidOperationException(""Sequence contains no matching element"");
         }}
 {generatedTypes}    }}
 }}";
@@ -625,7 +627,7 @@ namespace System.Linq
                 if (predicate(item))
                     return item;
             }}
-            ThrowHelper.ThrowNoElementsException();
+            ThrowHelper.ThrowNoMatchException();
             return default!;
         }}";
                     }
@@ -745,6 +747,146 @@ namespace System.Linq
             }}
             return true;
         }}";
+                    }
+                    break;
+
+                case LastOrDefault:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static {sourceResult}? LastOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            var length = source.Length;
+            if (length == 0)
+            {{
+                return default;
+            }}
+            else
+            {{
+                return source[length - 1];
+            }}
+        }}
+
+        public static {sourceResult}? LastOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            for (int i = source.Length - 1; i >= 0; i--)
+            {{
+                var item = source[i];
+                if (predicate(item))
+                    return item;
+            }}
+
+            return default;
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static {sourceResult}? LastOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            {sourceResult}? last = default;
+            foreach (var item in source)
+            {{
+                last = item;
+            }}
+            return last;
+        }}
+
+        public static {sourceResult}? LastOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            {sourceResult}? last = default;
+            foreach (var item in source)
+            {{
+                if (predicate(item))
+                    last = item;
+            }}
+            return last;
+        }}";
+                        }
+                    }
+                    break;
+
+                case Last:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        if (hasLength)
+                        {
+                            doc += $@"
+        public static {sourceResult} Last<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            var length = source.Length;
+            if (length == 0)
+            {{
+                ThrowHelper.ThrowNoElementsException();
+                return default!;
+            }}
+            else
+            {{
+                return source[length - 1];
+            }}
+        }}
+
+        public static {sourceResult} Last<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            for (int i = source.Length - 1; i >= 0; i--)
+            {{
+                var item = source[i];
+                if (predicate(item))
+                    return item;
+            }}
+
+            ThrowHelper.ThrowNoMatchException();
+            return default!;
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static {sourceResult} Last<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            {sourceResult} last = default!;
+            var found = false;
+            foreach (var item in source)
+            {{
+                last = item;
+                found = true;
+            }}
+
+            if (!found)
+                ThrowHelper.ThrowNoElementsException();
+
+            return last;
+        }}
+
+        public static {sourceResult} Last<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
+        {{
+            {sourceResult} last = default!;
+            var found = false;
+            foreach (var item in source)
+            {{
+                if (predicate(item))
+                {{
+                    last = item;
+                    found = true;
+                }}
+            }}
+
+            if (!found)
+                ThrowHelper.ThrowNoMatchException();
+
+            return last;
+        }}";
+                        }
                     }
                     break;
             }
