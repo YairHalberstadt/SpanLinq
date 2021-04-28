@@ -838,5 +838,68 @@ namespace SpanLinq.Tests.Integration
             Span<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.Equal(3, span.Where(x => x % 2 == 1).Last(x => x < 5));
         }
+
+        [Fact]
+        public void TestReverseToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 5, 4, 3, 2, 1}, span.Reverse().ToList());
+        }
+
+        [Fact]
+        public void TestReverseLast()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(1, span.Reverse().Last());
+        }
+
+        [Fact]
+        public void TestSelectReverseToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { "5", "4", "3", "2", "1" }, span.Select(x => x.ToString()).Reverse().ToList());
+        }
+
+        [Fact]
+        public void TestWhereReverseToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 5, 3, 1 }, span.Where(x => x % 2 == 1).Reverse().ToList());
+        }
+
+        [Fact]
+        public void TestReverseSelectToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 25, 16, 9, 4, 1 }, span.Reverse().Select(x => x * x).ToList());
+        }
+
+        [Fact]
+        public void TestReverseTakeToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 5, 4, 3 }, span.Reverse().Take(3).ToList());
+        }
+
+        [Fact]
+        public void TestReverseSkipToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 2, 1 }, span.Reverse().Skip(3).ToList());
+        }
+
+        [Fact]
+        public void TestWhereReverseTakeToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 5, 3 }, span.Where(x => x % 2 == 1).Reverse().Take(2).ToList());
+        }
+
+        [Fact]
+        public void TestWhereReverseSkipToList()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.Equal(new[] { 1 }, span.Where(x => x % 2 == 1).Reverse().Skip(2).ToList());
+        }
     }
 }

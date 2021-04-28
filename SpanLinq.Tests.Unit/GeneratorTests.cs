@@ -68,7 +68,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }
-            
+
             public int Length => source.Length;
 
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -130,7 +130,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }
-            
+
             public int Length => source.Length;
 
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -234,7 +234,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }
-            
+
             public int Length => source.Length;
 
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -296,7 +296,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }
-            
+
             public int Length => source.Length;
 
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -453,7 +453,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }
-            
+
             public Enumerator GetEnumerator()
             {
                 return new Enumerator(this);
@@ -595,7 +595,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }
-            
+
             public int Length => source.Length;
 
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -771,15 +771,18 @@ namespace System.Linq
         private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray }).ToArray();
         public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools
                                                                            from first in AllMethods
+                                                                           where b == true || first != Reverse
                                                                            select new object[] { b, first };
         public static IEnumerable<object[]> TestCartesianProduct2Data() => from b in Bools
                                                                            from first in RefStructReturningMethods
                                                                            from second in AllMethods
+                                                                           where b == true || (first != Reverse && second != Reverse)
                                                                            select new object[] { b, first, second };
         public static IEnumerable<object[]> TestCartesianProduct3Data() => from b in Bools
                                                                            from first in RefStructReturningMethods
                                                                            from second in RefStructReturningMethods
                                                                            from third in AllMethods
+                                                                           where b == true || (first != Reverse && second != Reverse && third != Reverse)
                                                                            select new object[] { b, first, second, third };
 
         [Theory]
@@ -869,6 +872,7 @@ return 0;
                 All => ".All(x => x < 4)",
                 LastOrDefault => ".LastOrDefault()",
                 Last => ".Last()",
+                Reverse => ".Reverse()",
                 _ => throw new NotImplementedException(ToString())
             };
         }

@@ -17,6 +17,7 @@ namespace SpanLinq
         Single,
         All,
         LastOrDefault,
-        Last
+        Last,
+        Reverse,
     }
 }

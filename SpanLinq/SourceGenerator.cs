@@ -152,7 +152,7 @@ namespace System.Linq
                 this.source = source;
                 this.selector = selector;
             }}
-            {(hasLength ? $@"
+{(hasLength ? $@"
             public int Length => source.Length;
 
             [EditorBrowsable(EditorBrowsableState.Never)]
@@ -885,6 +885,96 @@ namespace System.Linq
                 ThrowHelper.ThrowNoMatchException();
 
             return last;
+        }}";
+                        }
+                    }
+                    break;
+
+                case Reverse:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+                        var resultName = "Reverse" + (isReadOnlySpan ? "Span" : sourceName);
+                        var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
+                        if (isSpan)
+                        {
+                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+
+                            doc += $@"
+        public static {fullResultName} Reverse<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            return ((ReadOnlySpan<{sourceResult}>)source).Reverse();
+        }}";
+                        }
+                        else
+                        {
+                            doc += $@"
+        public static {fullResultName} Reverse<{sourceTypeParametersString}>(this {fullSourceName} source)
+        {{
+            return new {fullResultName}(source);
+        }}
+
+        public ref struct {fullResultName}
+        {{
+            private {fullSourceName} source;
+
+            public {resultName}({fullSourceName} source)
+            {{
+                this.source = source;
+            }}
+{(hasLength ? $@"
+            public int Length => source.Length;
+
+            [EditorBrowsable(EditorBrowsableState.Never)]
+            internal void Slice(int start, int length)
+            {{
+                {(isReadOnlySpan ? "source = " : "")}source.Slice(source.Length - start - length, length);
+            }}
+
+            public {sourceResult} this[int i] => source[source.Length - i - 1];
+" : "")}
+            public Enumerator GetEnumerator()
+            {{
+                return new Enumerator(this);
+            }}
+
+            public ref struct Enumerator
+            {{
+                private int index;
+                {(hasLength
+                ? $@"private {fullSourceName} source;
+
+                public Enumerator({fullResultName} outer)
+                {{
+                    source = outer.source;
+                    index = outer.Length - 1;
+                    Current = default!;
+                }}"
+                : $@"private List<{sourceResult}> source;
+
+                public Enumerator({fullResultName} outer)
+                {{
+                    source = new List<{sourceResult}>();
+                    foreach(var item in outer.source)
+                        source.Add(item);
+                    index = source.Count - 1;
+                    Current = default!;
+                }}")}
+
+                public {sourceResult} Current {{ get; private set; }}
+
+                public bool MoveNext()
+                {{
+                    if (index < 0)
+                        return false;
+
+                    Current = source[index];
+                    index--;
+                    return true;
+                }}
+            }}
         }}";
                         }
                     }
