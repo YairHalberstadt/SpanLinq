@@ -76,7 +76,7 @@ namespace SpanLinq
 
         private static string CreateFullSourceText(string generatedTypes)
         {
-            return 
+            return
 $@"#pragma warning disable CS8019
 #nullable enable
 
@@ -977,6 +977,46 @@ namespace System.Linq
             }}
         }}";
                         }
+                    }
+                    break;
+
+                case Contains:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                            doc += $@"
+        public static bool Contains<{sourceTypeParametersString}>(this {fullSourceName} source, {sourceResult} value)
+        {{
+            return Contains(source, value, null);
+        }}
+
+        public static bool Contains<{sourceTypeParametersString}>(this {fullSourceName} source, {sourceResult} value, IEqualityComparer<{sourceResult}>? comparer)
+        {{
+            if (comparer == null)
+            {{
+                foreach (var element in source)
+                {{
+                    if (EqualityComparer<{sourceResult}>.Default.Equals(element, value))
+                    {{
+                        return true;
+                    }}
+                }}
+            }}
+            else
+            {{
+                foreach (var element in source)
+                {{
+                    if (comparer.Equals(element, value))
+                    {{
+                        return true;
+                    }}
+                }}
+            }}
+            return false;
+        }}";
                     }
                     break;
             }

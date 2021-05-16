@@ -50,3 +50,5 @@ Instead SpanLinq uses Source Generators to generate extension methods on the fly
 - `.LastOrDefault<T>(Func<T, bool> predicate)`
 - `.Last<T>()`
 - `.Last<T>(Func<T, bool> predicate)`
+- `.Contains<T>(T value)`
+- `.Contains<T>(T value, IEqualityComparer<T> comparer)`

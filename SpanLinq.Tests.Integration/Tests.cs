@@ -901,5 +901,33 @@ namespace SpanLinq.Tests.Integration
             ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
             Assert.Equal(new[] { 1 }, span.Where(x => x % 2 == 1).Reverse().Skip(2).ToList());
         }
+
+        [Fact]
+        public void TestContainsTrue()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.True(span.Select(x => x * x).Contains(25));
+        }
+
+        [Fact]
+        public void TestContainsFalse()
+        {
+            ReadOnlySpan<int> span = stackalloc int[] { 1, 2, 3, 4, 5 };
+            Assert.False(span.Select(x => x * x).Contains(5));
+        }
+
+        [Fact]
+        public void TestContainsComparerTrue()
+        {
+            ReadOnlySpan<string> span = new string[] { "a", "b", "c" };
+            Assert.True(span.Where(x => x == "c").Contains("C", StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void TestContainsComparerFalse()
+        {
+            ReadOnlySpan<string> span = new string[] { "a", "b", "c" };
+            Assert.False(span.Where(x => x == "c").Contains("b", StringComparer.OrdinalIgnoreCase));
+        }
     }
 }

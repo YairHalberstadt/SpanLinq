@@ -19,5 +19,6 @@ namespace SpanLinq
         LastOrDefault,
         Last,
         Reverse,
+        Contains,
     }
 }
