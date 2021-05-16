@@ -884,7 +884,7 @@ return 0;
             stream.Seek(0, SeekOrigin.Begin);
             var assemblyLoadContext = new AssemblyLoadContext(null, true);
             var assembly = assemblyLoadContext.LoadFromStream(stream);
-            Assert.Equal(0, assembly.EntryPoint.Invoke(null, new object[] { null }));
+            Assert.Equal(0, assembly.EntryPoint!.Invoke(null, new object[] { null! }));
             assemblyLoadContext.Unload();
         }
     }

@@ -2,12 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-	<LangVersion>preview</LangVersion>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <PropertyGroup>
+		<VersionPrefix>$(Version)</VersionPrefix>
+		<PackageId>SpanLinq</PackageId>
+		<Description>Linq extension methods for Span and ReadOnlySpan</Description>
+	</PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.8.0" />
-	  <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.8.0" />
   </ItemGroup>
+
+  <ItemGroup>
+		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
 
 </Project>

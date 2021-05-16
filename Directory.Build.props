@@ -1,0 +1,34 @@
+<Project>
+	<PropertyGroup>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<NoWarn>CS1591</NoWarn>
+		<WarningsNotAsErrors>AD0001</WarningsNotAsErrors>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+		<AnalysisMode>AllEnabledByDefault</AnalysisMode>
+		<AnalysisLevel>preview</AnalysisLevel>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<Version>0.0.1</Version>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Authors>SpanLinq</Authors>
+		<Product>SpanLinq</Product>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/YairHalberstadt/SpanLinq</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/YairHalberstadt/SpanLinq</RepositoryUrl>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+	</ItemGroup>
+</Project>
