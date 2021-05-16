@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Spanlinq\SpanLinq.csproj" OutputItemType="Analyzer"/>
+    <ProjectReference Include="..\SpanLinq\SpanLinq.csproj" OutputItemType="Analyzer"/>
   </ItemGroup>
 
 </Project>

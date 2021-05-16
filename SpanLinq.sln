@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31213.239
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpanLinq", "Spanlinq\SpanLinq.csproj", "{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpanLinq", "SpanLinq\SpanLinq.csproj", "{BEC3945A-E283-4BE0-AD2E-A24C064B7D6E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SpanLinq.Tests.Unit", "SpanLinq.Tests.Unit\SpanLinq.Tests.Unit.csproj", "{8D983896-D280-44AA-ACFF-019FED3A8E28}"
 EndProject
