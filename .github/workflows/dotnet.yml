@@ -26,7 +26,7 @@ jobs:
     - name: Build
       run: dotnet build -c Release --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test -c Release --no-build --verbosity normal
 
     - name: Get timestamp
       uses: 1466587594/get-current-time@v1
