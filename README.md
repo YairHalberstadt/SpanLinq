@@ -1,5 +1,7 @@
 # SpanLinq
 Linq for Span<T> using SourceGenerators
+  
+https://www.nuget.org/packages/SpanLinq/
 
 ## What it does
 
