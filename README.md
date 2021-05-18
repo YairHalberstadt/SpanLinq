@@ -11,7 +11,7 @@ Not all of linq is provided, but the most common methods are. If the method you 
 
 Because `Span<T>` and `ReadOnlySpan<T>` are ref structs it's impossible to abstract over them. This means that you can't write a single extension method that workd for both `Span<T>` and `ReadOnlySpan<T>`, and even if you did write both, the return type wouldn't have an extension method, preventing chaining. 
 
-Instead SpanLinq uses Source Generators to generate extension methods on the fly, as they are used. This has some advantages, but also disadvantages:
+Instead SpanLinq uses Source Generators to generate extension methods on the fly as they are used. This has some advantages, but also disadvantages:
 
 **advantages**
 
