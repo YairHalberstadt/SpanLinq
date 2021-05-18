@@ -1,6 +1,7 @@
 using System;
 using Xunit;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace SpanLinq.Tests.Integration
 {
@@ -928,6 +929,53 @@ namespace SpanLinq.Tests.Integration
         {
             ReadOnlySpan<string> span = new string[] { "a", "b", "c" };
             Assert.False(span.Where(x => x == "c").Contains("b", StringComparer.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void TestToDictionary()
+        {
+            ReadOnlySpan<char> span = new char[] { 'a', 'b', 'c' };
+            IDictionary<string, char> dic = span.ToDictionary(x => x.ToString());
+            Assert.Equal('a', Assert.Contains("a", dic));
+            Assert.DoesNotContain("A", dic);
+        }
+
+        [Fact]
+        public void TestToDictionaryWithComparer()
+        {
+            ReadOnlySpan<char> span = new char[] { 'a', 'b', 'c' };
+            IDictionary<string, char> dic = span.ToDictionary(x => x.ToString(), StringComparer.OrdinalIgnoreCase);
+            Assert.Equal('a', Assert.Contains("a", dic));
+            Assert.Equal('a', Assert.Contains("A", dic));
+            Assert.DoesNotContain("d", dic);
+        }
+
+        [Fact]
+        public void TestToDictionaryWithElementSelector()
+        {
+            ReadOnlySpan<char> span = new char[] { 'a', 'b', 'c' };
+            IDictionary<string, char> dic = span.ToDictionary(x => x.ToString(), x => char.ToUpper(x));
+            Assert.Equal('A', Assert.Contains("a", dic));
+            Assert.DoesNotContain("A", dic);
+        }
+
+        [Fact]
+        public void TestToDictionaryWithElementSelectorAndComparer()
+        {
+            ReadOnlySpan<char> span = new char[] { 'a', 'b', 'c' };
+            IDictionary<string, char> dic = span.ToDictionary(x => x.ToString(), x => char.ToUpper(x), StringComparer.OrdinalIgnoreCase);
+            Assert.Equal('A', Assert.Contains("a", dic));
+            Assert.Equal('A', Assert.Contains("A", dic));
+            Assert.DoesNotContain("d", dic);
+        }
+
+        [Fact]
+        public void TestWhereToDictionary()
+        {
+            ReadOnlySpan<char> span = new char[] { 'a', 'b', 'c' };
+            IDictionary<string, char> dic = span.Where(x => x > 'a').ToDictionary(x => x.ToString());
+            Assert.DoesNotContain("a", dic);
+            Assert.Equal('b', Assert.Contains("b", dic));
         }
     }
 }

@@ -349,6 +349,46 @@ namespace System.Linq
                     }
                     break;
 
+                case ToDictionary:
+                    {
+                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
+                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+                        var sourceResult = sourceTypeParameters.Last();
+                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+
+                        doc += $@"
+        public static System.Collections.Generic.Dictionary<TKey, {sourceResult}> ToDictionary<{sourceTypeParametersString}, TKey>(this {fullSourceName} source, Func<{sourceResult}, TKey> keySelector) where TKey : notnull
+        {{
+            return source.ToDictionary(keySelector, null);
+        }}
+
+        public static System.Collections.Generic.Dictionary<TKey, {sourceResult}> ToDictionary<{sourceTypeParametersString}, TKey>(this {fullSourceName} source, Func<{sourceResult}, TKey> keySelector, IEqualityComparer<TKey>? comparer) where TKey : notnull
+        {{
+            var dict = new System.Collections.Generic.Dictionary<TKey, {sourceResult}>({(hasLength ? "source.Length" : "0")}, comparer);
+            foreach (var item in source)
+            {{
+                dict.Add(keySelector(item), item);
+            }}
+            return dict;
+        }}
+        
+        public static System.Collections.Generic.Dictionary<TKey, TElement> ToDictionary<{sourceTypeParametersString}, TKey, TElement>(this {fullSourceName} source, Func<{sourceResult}, TKey> keySelector, Func<{sourceResult}, TElement> elementSelector) where TKey : notnull
+        {{
+            return source.ToDictionary(keySelector, elementSelector, null);
+        }}
+
+        public static System.Collections.Generic.Dictionary<TKey, TElement> ToDictionary<{sourceTypeParametersString}, TKey, TElement>(this {fullSourceName} source, Func<{sourceResult}, TKey> keySelector, Func<{sourceResult}, TElement> elementSelector, IEqualityComparer<TKey>? comparer) where TKey : notnull
+        {{
+            var dict = new System.Collections.Generic.Dictionary<TKey, TElement>({(hasLength ? "source.Length" : "0")}, comparer);
+            foreach (var item in source)
+            {{
+                dict.Add(keySelector(item), elementSelector(item));
+            }}
+            return dict;
+        }}";
+                    }
+                    break;
+
                 case Take:
                     {
                         var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
@@ -987,7 +1027,7 @@ namespace System.Linq
                         var sourceResult = sourceTypeParameters.Last();
                         var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
 
-                            doc += $@"
+                        doc += $@"
         public static bool Contains<{sourceTypeParametersString}>(this {fullSourceName} source, {sourceResult} value)
         {{
             return Contains(source, value, null);

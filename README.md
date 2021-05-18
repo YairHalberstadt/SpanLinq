@@ -30,6 +30,10 @@ Instead SpanLinq uses Source Generators to generate extension methods on the fly
 - `.Where<T>(Func<T, bool> predicate)`
 - `.ToList<T>()`
 - `.ToArray<T>()`
+- `.ToDictionary<TSource, TKey>(Func<TSource, TKey> keySelector)`
+- `.ToDictionary<TSource, TKey>(Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer)`
+- `.ToDictionary<TSource, TKey, TValue>(Func<TSource, TKey> keySelector, Func<TSource, TValue> elementSelector)`
+- `.ToDictionary<TSource, TKey, TValue>(Func<TSource, TKey> keySelector, Func<TSource, TValue> elementSelector, IEqualityComparer<TKey> comparer)`
 - `.Skip<T>(int count)`
 - `.Take<T>(int count)`
 - `.Reverse<T>()`

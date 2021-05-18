@@ -768,7 +768,7 @@ namespace System.Linq
         private static bool[] Bools { get; } = new[] { true, false };
         private static Method[] AllMethods { get; } = ((Method[])Enum.GetValues(typeof(Method))).Except( new[] { Method.Single, SingleOrDefault } ).ToArray();
         private static Method[] CollectionReturningMethods { get; } = AllMethods.Except(new[] { Count, Any, First, FirstOrDefault, All, Last, LastOrDefault, Contains }).ToArray();
-        private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray }).ToArray();
+        private static Method[] RefStructReturningMethods { get; } = CollectionReturningMethods.Except(new[] { ToList, ToArray, ToDictionary }).ToArray();
         public static IEnumerable<object[]> TestCartesianProduct1Data() => from b in Bools
                                                                            from first in AllMethods
                                                                            where b == true || first != Reverse
@@ -874,6 +874,7 @@ return 0;
                 Last => ".Last()",
                 Reverse => ".Reverse()",
                 Contains => ".Contains(3)",
+                ToDictionary => ".ToDictionary(x => x.ToString())",
                 _ => throw new NotImplementedException(ToString())
             };
         }

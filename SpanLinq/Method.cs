@@ -20,5 +20,6 @@ namespace SpanLinq
         Last,
         Reverse,
         Contains,
+        ToDictionary,
     }
 }
