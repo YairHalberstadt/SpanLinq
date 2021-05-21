@@ -20,6 +20,18 @@
                 "reveal": "silent"
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "run tests updator",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "run",
+                "--project=Utilities/GeneratorTestsUpdator/GeneratorTestsUpdator.csproj"
+            ],
+            "problemMatcher": [
+                "$msCompile"
+            ]
         }
     ]
 }

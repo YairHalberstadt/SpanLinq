@@ -20,7 +20,7 @@ Instead SpanLinq uses Source Generators to generate extension methods on the fly
 
 **disadvantages**
 
-- potentially slow compile times, and IDE lag. This is generally fine, but gets worse the longer your longest Linq chain is. Future development could improve this.
+- potentially slow compile times, and IDE lag. This is generally fine, and even pathological cases only lead to a linear increase in compile times.
 - poor code completion. I hope to improve this in the future with a custom completion provider.
 - potential code bloat, since methods often can't be reused, you could theoretically end up generating hundreds of almost identical methods. This is unlikely to happen except on the largest projects.
 

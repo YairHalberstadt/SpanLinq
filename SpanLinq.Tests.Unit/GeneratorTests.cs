@@ -642,6 +642,18 @@ namespace System.Linq
             return ((ReadOnlySpan<TSource>)source).Select(selector);
         }
 
+        public static TResult[] ToArray<TSource, TResult>(this SelectSpan<TSource, TResult> source)
+        {
+            var array = new TResult[source.Length];
+            int i = 0;
+            foreach (var item in source)
+            {
+                array[i] = item;
+                i++;
+            }
+            return array;
+        }
+
         public static WhereSpan<T> Where<T>(this ReadOnlySpan<T> source, Func<T, bool> predicate)
         {
             return new WhereSpan<T>(source, predicate);
@@ -693,18 +705,6 @@ namespace System.Linq
         public static WhereSpan<T> Where<T>(this Span<T> source, Func<T, bool> predicate)
         {
             return ((ReadOnlySpan<T>)source).Where(predicate);
-        }
-
-        public static TResult[] ToArray<TSource, TResult>(this SelectSpan<TSource, TResult> source)
-        {
-            var array = new TResult[source.Length];
-            int i = 0;
-            foreach (var item in source)
-            {
-                array[i] = item;
-                i++;
-            }
-            return array;
         }
 
         public static T[] ToArray<T>(this WhereSpan<T> source)

@@ -38,8 +38,8 @@ namespace GeneratorTestsUpdator
             private readonly string _originalSource;
             public TestSourceUpdater()
             {
-                var currentDirectory = Directory.GetCurrentDirectory();
-                _targetFilePath = Directory.GetCurrentDirectory()[..(currentDirectory.LastIndexOf("bin"))] + "../../SpanLinq.Tests.Unit/GeneratorTests.cs";
+                var directory = this.GetType().Assembly.Location;
+                _targetFilePath = directory[..(directory.LastIndexOf("bin"))] + "../../SpanLinq.Tests.Unit/GeneratorTests.cs";
                 _source = _originalSource = File.ReadAllText(_targetFilePath);
             }
 

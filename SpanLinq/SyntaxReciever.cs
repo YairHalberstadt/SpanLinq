@@ -10,7 +10,7 @@ namespace SpanLinq
     {
         private readonly Dictionary<string, Method> methods;
 
-        public List<(MemberAccessExpressionSyntax syntax, Method method)> ToInvestigate { get; } = new();
+        public List<MemberAccessExpressionSyntax> ToInvestigate { get; } = new();
 
         public SyntaxReciever(Dictionary<string, Method> methods)
         {
@@ -28,7 +28,7 @@ namespace SpanLinq
 
             if (syntaxNode is MemberAccessExpressionSyntax { Name: var memberName } memberAccessExpression && methods.TryGetValue(memberName.Identifier.ValueText, out var method))
             {
-                ToInvestigate.Add((memberAccessExpression, method));
+                ToInvestigate.Add(memberAccessExpression);
             }
         }
     }

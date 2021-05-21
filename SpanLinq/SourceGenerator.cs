@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
@@ -41,21 +42,45 @@ namespace SpanLinq
 
                 var updatedToInvestigate = toInvestigate.Where(x =>
                 {
-                    var semanticModel = compilation.GetSemanticModel(x.syntax.SyntaxTree);
-                    if (semanticModel.GetSymbolInfo(x.syntax).Symbol is not null)
-                    {
-                        //Currently binds, so don't generate method for. Return true as fixing a call earlier in the chain can stop this binding.
-                        return true;
-                    }
+                    return TryGenerate(x) is null;
 
-                    if (semanticModel.GetTypeInfo(x.syntax.Expression).Type is INamedTypeSymbol { OriginalDefinition: var type }
-                        && toPotentiallyGenerateLinqFor.Contains(type))
+                    GeneratedType? TryGenerate(MemberAccessExpressionSyntax syntax)
                     {
-                        Generate(ref source, type, x.method, span, readOnlySpan, generated);
-                        return false;
-                    }
+                        if (!methods.TryGetValue(syntax.Name.Identifier.ValueText, out var method))
+                        {
+                            return null;
+                        }
 
-                    return true;
+                        var semanticModel = compilation.GetSemanticModel(syntax.SyntaxTree);
+                        if (semanticModel.GetSymbolInfo(syntax).Symbol is not null)
+                        {
+                            //Currently binds, so don't generate method for.
+                            return null;
+                        }
+
+                        if (semanticModel.GetTypeInfo(syntax.Expression).Type is INamedTypeSymbol { OriginalDefinition: var type }
+                            && toPotentiallyGenerateLinqFor.Contains(type))
+                        {
+                            var methodTogenerate = MethodTogenerate.FromTypeSymbolReciever(type, method, span, readOnlySpan);
+                            Generate(ref source, methodTogenerate, generated);
+                            return methodTogenerate.ResultType;
+                        }
+
+                        if (syntax.Expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax recieverSyntax }
+                            && TryGenerate(recieverSyntax) is { } generatedRecieverType)
+                        {
+                            var methodTogenerate = new MethodTogenerate(generatedRecieverType, method);
+                            if (generatedRecieverType.IsReadOnlySpan || generatedRecieverType.IsSpan)
+                            {
+                                // Might bind already since reciever type is not generated, so do another compilation to check
+                                return null;
+                            }
+                            Generate(ref source, methodTogenerate, generated);
+                            return methodTogenerate.ResultType;
+                        }
+
+                        return null;
+                    }
                 }).ToList();
 
                 if (updatedToInvestigate.Count == toInvestigate.Count || updatedToInvestigate.Count == 0)
@@ -99,34 +124,34 @@ namespace System.Linq
 }}";
         }
 
-        private void Generate(ref string doc, INamedTypeSymbol type, Method method, INamedTypeSymbol span, INamedTypeSymbol readOnlySpan, HashSet<(string sourceType, Method method)> generated)
+        private void Generate(ref string doc, MethodTogenerate methodToGenerate, HashSet<(string sourceType, Method method)> generated)
         {
-            if (!generated.Add((type.Name, method)))
+            var method = methodToGenerate.Method;
+            if (!generated.Add((methodToGenerate.RecieverType.Name, method)))
             {
                 return;
             }
 
-            var isSpan = type.Equals(span, SymbolEqualityComparer.Default);
-            var isReadOnlySpan = type.Equals(readOnlySpan, SymbolEqualityComparer.Default);
-            var sourceName = type.Name;
-            var hasLength = type.GetMembers().Any(x => x is IPropertySymbol { Name: "Length" });
+            var isSpan = methodToGenerate.RecieverType.IsSpan;
+            var isReadOnlySpan = methodToGenerate.RecieverType.IsReadOnlySpan;
+            var sourceName = methodToGenerate.RecieverType.Name;
+            var hasLength = methodToGenerate.RecieverType.HasLength;
+
+            var sourceTypeParameters = methodToGenerate.SourceTypeParametersToUse;
+            var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
+            var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
+            var sourceResult = sourceTypeParameters.Last();
+            var resultName = methodToGenerate.ResultType?.Name;
+            var fullResultName = resultName is null ? null : $"{resultName}<{string.Join(", ", methodToGenerate.ResultType!.TypeParameters)}>";
             switch (method)
             {
                 case Select:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Length == 1
-                            ? new List<string> { "TSource" }
-                            : type.TypeParameters.Select(x => sourceName + x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        var resultName = "Select" + (isReadOnlySpan ? "Span" : sourceName);
-                        var fullResultName = $"{resultName}<{sourceTypeParametersString}, TResult>";
                         var funcName = $"Func<{sourceResult}, TResult>";
 
                         if (isSpan)
                         {
-                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+                            GenerateForReadOnlySpan(ref doc, methodToGenerate, generated);
 
                             doc += $@"
         public static {fullResultName} Select<{sourceTypeParametersString}, TResult>(this {fullSourceName} source, {funcName} selector)
@@ -199,16 +224,10 @@ namespace System.Linq
 
                 case Where:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        var resultName = "Where" + (isReadOnlySpan ? "Span" : sourceName);
-                        var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
                         var funcName = $"Func<{sourceResult}, bool>";
                         if (isSpan)
                         {
-                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+                            GenerateForReadOnlySpan(ref doc, methodToGenerate, generated);
 
                             doc += $@"
         public static {fullResultName} Where<{sourceTypeParametersString}>(this {fullSourceName} source, {funcName} predicate)
@@ -272,13 +291,9 @@ namespace System.Linq
 
                 case ToList:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
                         if (isSpan)
                         {
-                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+                            GenerateForReadOnlySpan(ref doc, methodToGenerate, generated);
 
                             doc += $@"
         public static System.Collections.Generic.List<{sourceResult}> ToList<{sourceTypeParametersString}>(this {fullSourceName} source)
@@ -304,13 +319,9 @@ namespace System.Linq
 
                 case ToArray:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
                         if (isSpan)
                         {
-                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+                            GenerateForReadOnlySpan(ref doc, methodToGenerate, generated);
 
                             doc += $@"
         public static {sourceResult}[] ToArray<{sourceTypeParametersString}>(this {fullSourceName} source)
@@ -351,11 +362,6 @@ namespace System.Linq
 
                 case ToDictionary:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         doc += $@"
         public static System.Collections.Generic.Dictionary<TKey, {sourceResult}> ToDictionary<{sourceTypeParametersString}, TKey>(this {fullSourceName} source, Func<{sourceResult}, TKey> keySelector) where TKey : notnull
         {{
@@ -391,11 +397,6 @@ namespace System.Linq
 
                 case Take:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         if (hasLength)
                         {
                             doc += $@"
@@ -410,9 +411,6 @@ namespace System.Linq
                         }
                         else
                         {
-                            var resultName = "Take" + (isReadOnlySpan ? "Span" : sourceName);
-                            var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
-
                             doc += $@"
         public static {fullResultName} Take<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
         {{
@@ -461,11 +459,6 @@ namespace System.Linq
 
                 case Skip:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         if (hasLength)
                         {
                             doc += $@"
@@ -488,9 +481,6 @@ namespace System.Linq
                         }
                         else
                         {
-                            var resultName = "Skip" + (isReadOnlySpan ? "Span" : sourceName);
-                            var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
-
                             doc += $@"
         public static {fullResultName} Skip<{sourceTypeParametersString}>(this {fullSourceName} source, int count)
         {{
@@ -544,10 +534,6 @@ namespace System.Linq
 
                 case Count:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
                         if (hasLength)
                         {
                             doc += $@"
@@ -574,10 +560,6 @@ namespace System.Linq
 
                 case Any:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
                         if (hasLength)
                         {
                             doc += $@"
@@ -615,11 +597,6 @@ namespace System.Linq
 
                 case FirstOrDefault:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         doc += $@"
         public static {sourceResult}? FirstOrDefault<{sourceTypeParametersString}>(this {fullSourceName} source)
         {{
@@ -644,11 +621,6 @@ namespace System.Linq
 
                 case First:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         doc += $@"
         public static {sourceResult} First<{sourceTypeParametersString}>(this {fullSourceName} source)
         {{
@@ -675,11 +647,6 @@ namespace System.Linq
 
                 case SingleOrDefault:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         if (hasLength)
                         {
                             doc += $@"
@@ -722,11 +689,6 @@ namespace System.Linq
 
                 case Method.Single:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         if (hasLength)
                         {
                             doc += $@"
@@ -771,11 +733,6 @@ namespace System.Linq
 
                 case All:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         doc += $@"
 
         public static bool All<{sourceTypeParametersString}>(this {fullSourceName} source, Func<{sourceResult}, bool> predicate)
@@ -792,11 +749,6 @@ namespace System.Linq
 
                 case LastOrDefault:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         if (hasLength)
                         {
                             doc += $@"
@@ -854,11 +806,6 @@ namespace System.Linq
 
                 case Last:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         if (hasLength)
                         {
                             doc += $@"
@@ -932,15 +879,9 @@ namespace System.Linq
 
                 case Reverse:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-                        var resultName = "Reverse" + (isReadOnlySpan ? "Span" : sourceName);
-                        var fullResultName = $"{resultName}<{sourceTypeParametersString}>";
                         if (isSpan)
                         {
-                            Generate(ref doc, readOnlySpan, method, span, readOnlySpan, generated);
+                            GenerateForReadOnlySpan(ref doc, methodToGenerate, generated);
 
                             doc += $@"
         public static {fullResultName} Reverse<{sourceTypeParametersString}>(this {fullSourceName} source)
@@ -1022,11 +963,6 @@ namespace System.Linq
 
                 case Contains:
                     {
-                        var sourceTypeParameters = type.TypeParameters.Select(x => x.Name).ToList();
-                        var sourceTypeParametersString = string.Join(", ", sourceTypeParameters);
-                        var sourceResult = sourceTypeParameters.Last();
-                        var fullSourceName = $"{sourceName}<{sourceTypeParametersString}>";
-
                         doc += $@"
         public static bool Contains<{sourceTypeParametersString}>(this {fullSourceName} source, {sourceResult} value)
         {{
@@ -1063,6 +999,19 @@ namespace System.Linq
 
             doc += @"
 ";
+
+            void GenerateForReadOnlySpan(ref string doc, MethodTogenerate methodToGenerate, HashSet<(string sourceType, Method method)> generated)
+            {
+                Generate(ref doc, methodToGenerate with
+                {
+                    RecieverType = methodToGenerate.RecieverType with
+                    {
+                        Name = "ReadOnlySpan",
+                        IsReadOnlySpan = true,
+                        IsSpan = false
+                    }
+                }, generated);
+            }
         }
 
         public void Initialize(GeneratorInitializationContext context)
